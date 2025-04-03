@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import YAML from 'yaml';
 import { LLMProviderType } from '../llm';
+import { logger } from './logger';
 
 /**
  * Configuration interface for Terminal AI
@@ -47,7 +48,7 @@ export function writeConfig(config: TerminalAIConfig): boolean {
     fs.writeFileSync(CONFIG_PATH, yamlString, 'utf8');
     return true;
   } catch (error) {
-    console.error('Error writing config file:', error);
+    logger.error(`Error writing config file: ${error}`);
     return false;
   }
 }

@@ -11,6 +11,7 @@ import {
 } from '../functions';
 import { CumulativeCostTracker } from '../utils/pricing-calculator';
 import { costTracker } from './ai';
+import { logger } from '../utils/logger';
 
 /**
  * Agent system prompt - instructs the LLM to act as a terminal assistant
@@ -26,10 +27,10 @@ const AGENT_SYSTEM_PROMPT =
  */
 export async function runAgentMode(initialInput: string): Promise<void> {
   try {
-    console.log('Starting agent mode...');
-    console.log(`Initial query: "${initialInput}"`);
-    console.log('The agent will suggest commands and execute them with your permission.');
-    console.log('Type "exit" or "quit" to end the session.\n');
+    logger.info('Starting agent mode...');
+    logger.info(`Initial query: "${initialInput}"`);
+    logger.info('The agent will suggest commands and execute them with your permission.');
+    logger.info('Type "exit" or "quit" to end the session.');
     
     // Create the LLM provider and command processor with cost tracking
     const llmProvider = createLLMProvider();
@@ -64,7 +65,7 @@ export async function runAgentMode(initialInput: string): Promise<void> {
         content: aiResponse
       });
       
-      console.log('\nAgent: ' + aiResponse);
+      logger.aiResponse(aiResponse);
       
       // Get next user input
       const { nextInput } = await inquirer.prompt<{ nextInput: string }>([
@@ -82,12 +83,12 @@ export async function runAgentMode(initialInput: string): Promise<void> {
     // Display cumulative cost information for the session
     costTracker.displayTotalCost();
     
-    console.log('Exiting agent mode. Goodbye!');
+    logger.info('Exiting agent mode. Goodbye!');
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error('Error in agent mode:', error.message);
+      logger.error(`Error in agent mode: ${error.message}`);
     } else {
-      console.error('Error in agent mode:', String(error));
+      logger.error(`Error in agent mode: ${String(error)}`);
     }
   }
 } 

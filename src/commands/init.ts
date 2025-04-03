@@ -2,14 +2,15 @@ import inquirer from 'inquirer';
 import { writeConfig, configExists } from '../utils/config';
 import { LLMProviderType } from '../llm';
 import { getProviderModels, getDefaultModel } from '../utils/model-config';
+import { logger } from '../utils/logger';
 
 /**
  * Initialize the Terminal AI CLI by setting up the config
  */
 export async function initCommand(): Promise<void> {
   try {
-    console.log('Terminal AI - Initial Setup');
-    console.log('---------------------------');
+    logger.info('Terminal AI - Initial Setup');
+    logger.info('---------------------------');
     
     // Check if config already exists
     if (configExists()) {
@@ -23,7 +24,7 @@ export async function initCommand(): Promise<void> {
       ]);
       
       if (!overwrite) {
-        console.log('Setup canceled. Keeping existing configuration.');
+        logger.info('Setup canceled. Keeping existing configuration.');
         return;
       }
     }
@@ -110,12 +111,16 @@ export async function initCommand(): Promise<void> {
     const success = writeConfig(config);
     
     if (success) {
-      console.log('Configuration saved successfully!');
-      console.log('You can now use the Terminal AI CLI with your configured provider.');
+      logger.success('Configuration saved successfully!');
+      logger.info('You can now use the Terminal AI CLI with your configured provider.');
     } else {
-      console.error('Failed to save configuration.');
+      logger.error('Failed to save configuration.');
     }
-  } catch (error) {
-    console.error('Error during initialization:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      logger.error(`Error during initialization: ${error.message}`);
+    } else {
+      logger.error(`Error during initialization: ${String(error)}`);
+    }
   }
 } 

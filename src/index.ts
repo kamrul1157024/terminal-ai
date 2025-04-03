@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { processAiCommand } from './commands/ai';
-import { runAgentMode } from './commands/agent';
+import { processAiCommand, runAgentMode } from './commands/ai';
 import { initCommand } from './commands/init';
 import { configExists } from './utils/config';
+import { logger } from './utils/logger';
 import './utils/model-config'; // Ensure model config is loaded
 
 // Package version from package.json
@@ -33,7 +33,7 @@ program
   .action(async (input: string, options) => {
     // Check if config exists
     if (!configExists()) {
-      console.log('Terminal AI is not configured. Running setup wizard...');
+      logger.info('Terminal AI is not configured. Running setup wizard...');
       await initCommand();
     }
     

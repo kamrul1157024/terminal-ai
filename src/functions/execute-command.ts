@@ -3,6 +3,7 @@ import { isSystemModifyingCommand } from '../utils';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import inquirer from 'inquirer';
+import { logger } from '../utils/logger';
 
 const execPromise = promisify(exec);
 
@@ -37,8 +38,8 @@ export const executeCommandHandler = async (args: Record<string, any>): Promise<
   const command = args.command;
   const reasoning = args.reasoning;
   
-  console.log(`\nRecommended command: ${command}`);
-  console.log(`Reasoning: ${reasoning}\n`);
+  logger.info(`Recommended command: ${command}`);
+  logger.info(`Reasoning: ${reasoning}`);
   
   if (isSystemModifyingCommand(command)) {
     // Ask for confirmation for potentially dangerous commands
@@ -58,19 +59,19 @@ export const executeCommandHandler = async (args: Record<string, any>): Promise<
   
   try {
     // Execute the command
-    console.log(`Executing: ${command}`);
+    logger.command(command);
     const { stdout, stderr } = await execPromise(command);
     
     if (stderr) {
-      console.error(`Command error: ${stderr}`);
+      logger.error(`Command error: ${stderr}`);
     }
     
-    console.log(stdout);
+    logger.info(stdout);
     return `Command output:\n${stdout}${stderr ? '\nErrors:\n' + stderr : ''}`;
   } catch (error: any) {
     // If command fails, try with sudo
     if (error.code !== 0) {
-      console.error(`Command failed with error: ${error.message}`);
+      logger.error(`Command failed with error: ${error.message}`);
       
       const { useSudo } = await inquirer.prompt([
         {
@@ -83,14 +84,14 @@ export const executeCommandHandler = async (args: Record<string, any>): Promise<
       
       if (useSudo) {
         try {
-          console.log(`Executing with sudo: sudo ${command}`);
+          logger.command(`sudo ${command}`);
           const { stdout, stderr } = await execPromise(`sudo ${command}`);
           
           if (stderr) {
-            console.error(`Command error: ${stderr}`);
+            logger.error(`Command error: ${stderr}`);
           }
           
-          console.log(stdout);
+          logger.info(stdout);
           return `Command output (with sudo):\n${stdout}${stderr ? '\nErrors:\n' + stderr : ''}`;
         } catch (sudoError: any) {
           return `Command failed with sudo: ${sudoError.message}`;

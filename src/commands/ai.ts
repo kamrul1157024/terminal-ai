@@ -8,7 +8,7 @@ import { runAgentMode } from './agent';
 import { Command } from 'commander';
 import { readConfig } from '../utils/config';
 import { Message, MessageRole } from '../llm/interface';
-import chalk from 'chalk';
+import { logger } from '../utils/logger';
 
 // Default system prompt for basic mode
 const BASIC_SYSTEM_PROMPT = 
@@ -57,9 +57,9 @@ async function readFromStdin(): Promise<string | null> {
  */
 export async function processAiCommand(input: string, context?: string): Promise<void> {
   try {
-    console.log(`Processing: "${input}"`);
+    logger.info(`Processing: "${input}"`);
     if (context) {
-      console.log('With context:', context);
+      logger.info(`With context: ${context}`);
     }
     
     // Create the LLM provider and command processor
@@ -93,9 +93,9 @@ export async function processAiCommand(input: string, context?: string): Promise
     await executeTerminalCommand(terminalCommand);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error('Error:', error.message);
+      logger.error(`Error: ${error.message}`);
     } else {
-      console.error('Error:', String(error));
+      logger.error(`Error: ${String(error)}`);
     }
   }
 }
@@ -110,24 +110,43 @@ async function executeTerminalCommand(command: string): Promise<void> {
 
   // If multiple commands, execute them sequentially
   if (commands.length > 1) {
-    console.log('Multiple commands detected. Executing sequentially...');
+    logger.info('Multiple commands detected. Executing sequentially...');
     for (const cmd of commands) {
       // Skip if line is a code block marker
       if (cmd.startsWith('```') || cmd.endsWith('```')) continue;
+      
+      // Check if this is a log tailing command
+      if (isLogTailingCommand(cmd)) {
+        logger.info('Log tailing command detected. Starting stream:');
+        await executeSingleCommand(cmd);
+        return; // Exit after starting the streaming command
+      }
       
       await executeSingleCommand(cmd);
     }
   } else {
     // Single command - remove code block markers if present
     const cleanCommand = command.replace(/```(bash)?\n?|```$/g, '').trim();
-    await executeSingleCommand(cleanCommand);
+    const shouldStream = isLogTailingCommand(cleanCommand);
+    await executeSingleCommand(cleanCommand, shouldStream);
   }
 }
 
-async function executeSingleCommand(command: string): Promise<void> {
+// Helper function to identify log tailing commands
+function isLogTailingCommand(command: string): boolean {
+  const tailingPatterns = [
+    /docker logs -f/,
+    /tail -f/,
+    /kubectl logs -f/,
+    /journalctl -f/
+  ];
+  return tailingPatterns.some(pattern => pattern.test(command));
+}
+
+async function executeSingleCommand(command: string, stream: boolean = false): Promise<void> {
   if (isSystemModifyingCommand(command)) {
     // Handle commands that modify the system
-    console.log(`>>>> \`${command}\` y or n?`);
+    logger.warn(`>>>> \`${command}\` y or n?`);
     
     const { confirm } = await inquirer.prompt<{ confirm: string }>([
       {
@@ -139,7 +158,7 @@ async function executeSingleCommand(command: string): Promise<void> {
     
     if (confirm.toLowerCase() === 'y') {
       try {
-        await execTerminalCommand(command, false);
+        await execTerminalCommand(command, false, stream);
       } catch (error) {
         // If command fails, try with sudo
         const { sudoConfirm } = await inquirer.prompt<{ sudoConfirm: string }>([
@@ -151,17 +170,17 @@ async function executeSingleCommand(command: string): Promise<void> {
         ]);
         
         if (sudoConfirm.toLowerCase() === 'y') {
-          await execTerminalCommand(command, true);
+          await execTerminalCommand(command, true, stream);
         }
       }
     }
   } else {
     // Handle read-only commands - execute without confirmation
-    console.log(`Executing: ${command}`);
+    logger.command(command);
     try {
-      await execTerminalCommand(command, false);
+      await execTerminalCommand(command, false, stream);
     } catch (error) {
-      console.error('Command execution failed');
+      logger.error('Command execution failed');
     }
   }
 }
@@ -184,7 +203,7 @@ export function aiCommand(program: Command) {
         const config = readConfig();
         
         if (!config) {
-          console.error(chalk.red('Configuration not found. Please run "ai init" first.'));
+          logger.error('Configuration not found. Please run "ai init" first.');
           process.exit(1);
         }
         
@@ -206,7 +225,7 @@ export function aiCommand(program: Command) {
         
         // Check if we're in agent mode
         if (options.agent) {
-          console.log(chalk.blue('Agent mode activated. Type "exit" or "quit" to end the session.'));
+          logger.info('Agent mode activated. Type "exit" or "quit" to end the session.');
           
           // If we have context, add it to the conversation history
           if (context) {
@@ -219,10 +238,10 @@ export function aiCommand(program: Command) {
           // If input was provided, process it first
           if (input.length > 0) {
             const initialInput = input.join(' ');
-            console.log(chalk.green(`\nYou: ${initialInput}`));
+            logger.userInput(initialInput);
             
             // Process with streaming output
-            console.log(chalk.yellow('\nAI: '));
+            logger.aiResponse('');
             const command = await processor.processCommand(
               initialInput,
               (token: string) => process.stdout.write(token),
@@ -235,7 +254,7 @@ export function aiCommand(program: Command) {
               { role: MessageRole.ASSISTANT, content: command }
             );
             
-            console.log(chalk.cyan(`\n\nExecuting: ${command}`));
+            logger.command(command);
           }
           
           // Start interactive loop
@@ -245,15 +264,17 @@ export function aiCommand(program: Command) {
           });
           
           const askQuestion = () => {
-            readline.question(chalk.green('\nYou: '), async (userInput: string) => {
+            readline.question('\n', async (userInput: string) => {
               if (userInput.toLowerCase() === 'exit' || userInput.toLowerCase() === 'quit') {
-                console.log(chalk.blue('Ending agent session.'));
+                logger.info('Ending agent session.');
                 readline.close();
                 return;
               }
               
+              logger.userInput(userInput);
+              
               // Process with streaming output
-              console.log(chalk.yellow('\nAI: '));
+              logger.aiResponse('');
               const command = await processor.processCommand(
                 userInput,
                 (token: string) => process.stdout.write(token),
@@ -266,7 +287,7 @@ export function aiCommand(program: Command) {
                 { role: MessageRole.ASSISTANT, content: command }
               );
               
-              console.log(chalk.cyan(`\n\nExecuting: ${command}`));
+              logger.command(command);
               
               // Continue the loop
               askQuestion();
@@ -277,12 +298,12 @@ export function aiCommand(program: Command) {
         } else {
           // Single command mode
           if (input.length === 0) {
-            console.error(chalk.red('Please provide a command to execute.'));
+            logger.error('Please provide a command to execute.');
             process.exit(1);
           }
           
           const userInput = input.join(' ');
-          console.log(chalk.green(`\nYou: ${userInput}`));
+          logger.userInput(userInput);
           
           // Initialize history with context if available
           const history: Message[] = [];
@@ -294,20 +315,20 @@ export function aiCommand(program: Command) {
           }
           
           // Process with streaming output
-          console.log(chalk.yellow('\nAI: '));
+          logger.aiResponse('');
           const command = await processor.processCommand(
             userInput,
             (token: string) => process.stdout.write(token),
             history
           );
           
-          console.log(chalk.cyan(`\n\nExecuting: ${command}`));
+          logger.command(command);
         }
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error(chalk.red(`Error: ${error.message}`));
+          logger.error(`Error: ${error.message}`);
         } else {
-          console.error(chalk.red(`Error: ${String(error)}`));
+          logger.error(`Error: ${String(error)}`);
         }
         process.exit(1);
       }
