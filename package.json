@@ -9,10 +9,13 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
     "prepublish": "npm run build",
-    "test": "echo \"No tests specified yet\""
+    "test": "echo \"No tests specified yet\"",
+    "install:global": "npm run build && npm install -g .",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
+    "setup": "npm install && npm run build",
+    "watch": "chokidar \"src/**/*.ts\" -c \"npm run install:global\""
   },
   "engines": {
     "node": ">=20.0.0"
@@ -54,6 +57,7 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
     "@types/yaml": "^1.9.7",
+    "chokidar": "^4.0.3",
     "ts-node": "^10.9.2"
   }
 }
