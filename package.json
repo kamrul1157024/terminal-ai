@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "test": "echo \"No tests specified yet\""
   },
   "engines": {
     "node": ">=20.0.0"

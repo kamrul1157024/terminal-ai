@@ -1,0 +1,35 @@
+# Source code
+src/
+
+# TypeScript configuration
+tsconfig.json
+
+# Development files
+.git/
+.github/
+.gitignore
+.vscode/
+.idea/
+*.log
+node_modules/
+
+# Test files
+__tests__/
+*.test.ts
+*.spec.ts
+
+# Configuration files
+.editorconfig
+.eslintrc
+.prettierrc
+.travis.yml
+.circleci/
+
+# Documentation that's not needed in the package
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Build artifacts and caches
+.DS_Store
+*.tsbuildinfo
+coverage/ 

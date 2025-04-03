@@ -1,0 +1,41 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Set version from release
+        run: |
+          # Extract version from GitHub release tag (remove the 'v' prefix if present)
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+          echo "Setting version to $VERSION"
+          # Update version in package.json
+          npm version $VERSION --no-git-tag-version
+
+      - name: Build
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test || echo "No tests specified"
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 

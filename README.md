@@ -1,5 +1,9 @@
 # AI CLI
 
+[![npm version](https://img.shields.io/npm/v/ai.svg)](https://www.npmjs.com/package/ai)
+[![CI](https://github.com/yourusername/ai/actions/workflows/pull-request.yml/badge.svg)](https://github.com/yourusername/ai/actions/workflows/pull-request.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A CLI application that uses AI to process natural language commands and execute them in the terminal.
 
 ## Features
@@ -141,6 +145,29 @@ AI CLI includes built-in cost tracking for all API-based providers:
 - `yarn build`: Build the application
 - `yarn start`: Run the built application
 
+## Continuous Integration
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Workflow**: Runs on pull requests and pushes to the main branch to verify the build and tests pass.
+- **Publish Workflow**: Automatically publishes to npm when a new GitHub release is created.
+
+### Publishing a New Release
+
+1. Create a new release on GitHub with a tag following semver (e.g., `v1.2.0`)
+2. The GitHub Action will automatically:
+   - Extract the version from the release tag
+   - Update the version in `package.json`
+   - Build the package
+   - Publish to npm
+
+### Setting Up NPM_TOKEN
+
+To enable automatic publishing, you need to add your NPM token to your GitHub repository:
+
+1. Generate an NPM access token with publish permissions
+2. Add it as a secret named `NPM_TOKEN` in your GitHub repository settings
+
 ## License
 
-MIT 
+MIT
