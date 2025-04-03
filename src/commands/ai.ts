@@ -105,6 +105,26 @@ export async function processAiCommand(input: string, context?: string): Promise
  * @param command The command to execute
  */
 async function executeTerminalCommand(command: string): Promise<void> {
+  // Split commands by newlines and filter out empty lines
+  const commands = command.split('\n').map(cmd => cmd.trim()).filter(cmd => cmd);
+
+  // If multiple commands, execute them sequentially
+  if (commands.length > 1) {
+    console.log('Multiple commands detected. Executing sequentially...');
+    for (const cmd of commands) {
+      // Skip if line is a code block marker
+      if (cmd.startsWith('```') || cmd.endsWith('```')) continue;
+      
+      await executeSingleCommand(cmd);
+    }
+  } else {
+    // Single command - remove code block markers if present
+    const cleanCommand = command.replace(/```(bash)?\n?|```$/g, '').trim();
+    await executeSingleCommand(cleanCommand);
+  }
+}
+
+async function executeSingleCommand(command: string): Promise<void> {
   if (isSystemModifyingCommand(command)) {
     // Handle commands that modify the system
     console.log(`>>>> \`${command}\` y or n?`);
