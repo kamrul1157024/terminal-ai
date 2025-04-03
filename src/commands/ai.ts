@@ -41,8 +41,12 @@ export async function processAiCommand(input: string): Promise<void> {
     
     // Execute the command with appropriate handling
     await executeTerminalCommand(terminalCommand);
-  } catch (error) {
-    console.error('Error:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error:', error.message);
+    } else {
+      console.error('Error:', String(error));
+    }
   }
 }
 
@@ -55,7 +59,7 @@ async function executeTerminalCommand(command: string): Promise<void> {
     // Handle commands that modify the system
     console.log(`>>>> \`${command}\` y or n?`);
     
-    const { confirm } = await inquirer.prompt([
+    const { confirm } = await inquirer.prompt<{ confirm: string }>([
       {
         type: 'input',
         name: 'confirm',
@@ -68,7 +72,7 @@ async function executeTerminalCommand(command: string): Promise<void> {
         await execTerminalCommand(command, false);
       } catch (error) {
         // If command fails, try with sudo
-        const { sudoConfirm } = await inquirer.prompt([
+        const { sudoConfirm } = await inquirer.prompt<{ sudoConfirm: string }>([
           {
             type: 'input',
             name: 'sudoConfirm',
@@ -137,7 +141,7 @@ export function aiCommand(program: Command) {
             console.log(chalk.yellow('\nAI: '));
             const command = await processor.processCommand(
               initialInput,
-              undefined, // Use default stdout writer
+              (token: string) => process.stdout.write(token),
               conversationHistory
             );
             
@@ -168,7 +172,7 @@ export function aiCommand(program: Command) {
               console.log(chalk.yellow('\nAI: '));
               const command = await processor.processCommand(
                 userInput,
-                undefined, // Use default stdout writer
+                (token: string) => process.stdout.write(token),
                 conversationHistory
               );
               
@@ -198,12 +202,19 @@ export function aiCommand(program: Command) {
           
           // Process with streaming output
           console.log(chalk.yellow('\nAI: '));
-          const command = await processor.processCommand(userInput);
+          const command = await processor.processCommand(
+            userInput,
+            (token: string) => process.stdout.write(token)
+          );
           
           console.log(chalk.cyan(`\n\nExecuting: ${command}`));
         }
-      } catch (error: any) {
-        console.error(chalk.red(`Error: ${error.message}`));
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error(chalk.red(`Error: ${error.message}`));
+        } else {
+          console.error(chalk.red(`Error: ${String(error)}`));
+        }
         process.exit(1);
       }
     });

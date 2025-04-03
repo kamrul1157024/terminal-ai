@@ -86,9 +86,14 @@ export class CommandProcessor {
         name: functionCall.name,
         content: result
       });
-    } catch (error: any) {
-      console.error(`Error executing function ${functionCall.name}:`, error);
-      throw new Error(`Function execution failed: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Error executing function ${functionCall.name}:`, error.message);
+        throw new Error(`Function execution failed: ${error.message}`);
+      } else {
+        console.error(`Error executing function ${functionCall.name}:`, String(error));
+        throw new Error(`Function execution failed: ${String(error)}`);
+      }
     }
   }
   

@@ -52,7 +52,11 @@ export async function runAgentMode(initialInput: string): Promise<void> {
       });
       
       // Process command with conversation history
-      const aiResponse = await commandProcessor.processCommand(userInput, conversationHistory);
+      const aiResponse = await commandProcessor.processCommand(
+        userInput,
+        (token: string) => process.stdout.write(token),
+        conversationHistory
+      );
       
       // Add assistant response to history
       conversationHistory.push({
@@ -63,7 +67,7 @@ export async function runAgentMode(initialInput: string): Promise<void> {
       console.log('\nAgent: ' + aiResponse);
       
       // Get next user input
-      const { nextInput } = await inquirer.prompt([
+      const { nextInput } = await inquirer.prompt<{ nextInput: string }>([
         {
           type: 'input',
           name: 'nextInput',
@@ -79,7 +83,11 @@ export async function runAgentMode(initialInput: string): Promise<void> {
     costTracker.displayTotalCost();
     
     console.log('Exiting agent mode. Goodbye!');
-  } catch (error) {
-    console.error('Error in agent mode:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error in agent mode:', error.message);
+    } else {
+      console.error('Error in agent mode:', String(error));
+    }
   }
 } 
