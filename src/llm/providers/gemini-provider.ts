@@ -7,7 +7,8 @@ import {
   CompletionOptions,
   CompletionResult,
   FunctionDefinition,
-  TokenUsage
+  TokenUsage,
+  FunctionCallResult
 } from '../interface';
 import { LLMProviderType } from '../index';
 import { countPromptTokens, countTokens } from '../../utils/token-counter';
@@ -206,6 +207,99 @@ export class GeminiProvider implements LLMProvider {
         return 'BOOLEAN';
       default:
         return 'STRING';
+    }
+  }
+
+  /**
+   * Generate a streaming completion using Gemini's API
+   * @param messages Array of messages to process
+   * @param onToken Callback function for each token received
+   * @param options Additional options like function definitions
+   * @returns The complete model's response text and any function calls
+   */
+  async generateStreamingCompletion(
+    messages: Message[], 
+    onToken: (token: string) => void,
+    options?: CompletionOptions
+  ): Promise<CompletionResult> {
+    try {
+      // Get a generative model
+      const genModel = this.client.getGenerativeModel({ model: this.model });
+      
+      // Map our messages to Gemini format
+      const geminiMessages = this.mapToGeminiMessages(messages);
+      
+      // Prepare the chat session
+      const chat = genModel.startChat({
+        generationConfig: {
+          maxOutputTokens: 4096,
+        },
+        // Use type assertion for tools
+        tools: this.prepareTools(options?.functions || []),
+      });
+      
+      // Initialize variables to track the complete response
+      let fullContent = '';
+      let functionCall: FunctionCallResult | undefined;
+      
+      // Send the message with streaming
+      const result = await chat.sendMessageStream(geminiMessages);
+      
+      // Process the stream
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        
+        if (chunkText) {
+          // Send the token to the callback
+          onToken(chunkText);
+          // Accumulate the content
+          fullContent += chunkText;
+        }
+      }
+      
+      // Get the complete response
+      const response = await result.response;
+      
+      // Create the result object
+      const responseResult: CompletionResult = { content: fullContent };
+      
+      // Check for function calls
+      const responseAny = response as any;
+      if (responseAny.functionCalls && Array.isArray(responseAny.functionCalls) && responseAny.functionCalls.length > 0) {
+        const functionCallData = responseAny.functionCalls[0];
+        
+        responseResult.functionCall = {
+          name: functionCallData.name,
+          arguments: JSON.parse(functionCallData.args)
+        };
+      }
+      
+      // Calculate token usage, using model-reported counts if available
+      let inputTokens = 0;
+      let outputTokens = 0;
+      
+      // Gemini API might provide token counts through the response object
+      if (responseAny.usageMetadata?.promptTokenCount && responseAny.usageMetadata?.candidatesTokenCount) {
+        // Use model-reported token counts when available (more accurate)
+        inputTokens = responseAny.usageMetadata.promptTokenCount;
+        outputTokens = responseAny.usageMetadata.candidatesTokenCount;
+      } else {
+        // Fall back to tiktoken calculation when model doesn't report usage
+        inputTokens = this.calculateInputTokens(messages);
+        outputTokens = countTokens(fullContent, this.model);
+      }
+      
+      // Add usage information to the response
+      responseResult.usage = {
+        inputTokens,
+        outputTokens,
+        model: this.model
+      };
+      
+      return responseResult;
+    } catch (error) {
+      console.error('Error processing streaming with Gemini:', error);
+      throw new Error('Failed to generate streaming completion with Gemini');
     }
   }
 } 

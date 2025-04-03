@@ -47,7 +47,7 @@ export interface FunctionDefinition {
  */
 export interface FunctionCallResult {
   name: string;
-  arguments: Record<string, any>;
+  arguments: Record<string, any> | string;
 }
 
 /**
@@ -93,6 +93,19 @@ export interface LLMProvider {
    */
   generateCompletion(
     messages: Message[], 
+    options?: CompletionOptions
+  ): Promise<CompletionResult>;
+  
+  /**
+   * Generate a streaming completion based on messages
+   * @param messages Array of messages to process
+   * @param options Additional options like function definitions
+   * @param onToken Callback function for each token received
+   * @returns The complete model's response text and optional function call
+   */
+  generateStreamingCompletion(
+    messages: Message[], 
+    onToken: (token: string) => void,
     options?: CompletionOptions
   ): Promise<CompletionResult>;
   

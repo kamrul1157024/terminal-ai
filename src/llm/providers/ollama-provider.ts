@@ -7,7 +7,8 @@ import {
   CompletionOptions,
   CompletionResult,
   FunctionDefinition,
-  TokenUsage
+  TokenUsage,
+  FunctionCallResult
 } from '../interface';
 import { LLMProviderType } from '../index';
 import { countPromptTokens, countTokens } from '../../utils/token-counter';
@@ -185,5 +186,120 @@ export class OllamaProvider implements LLMProvider {
     // For Ollama, it's better to count the final formatted prompt
     // since we add function definitions directly to the prompt
     return countTokens(formattedPrompt, this.model);
+  }
+
+  /**
+   * Generate a streaming completion using Ollama's API
+   * @param messages Array of messages to process
+   * @param onToken Callback function for each token received
+   * @param options Additional options like function definitions
+   * @returns The complete model's response text and any function calls
+   */
+  async generateStreamingCompletion(
+    messages: Message[], 
+    onToken: (token: string) => void,
+    options?: CompletionOptions
+  ): Promise<CompletionResult> {
+    try {
+      // Ollama doesn't directly support function calling like OpenAI, Claude, and Gemini
+      // So we'll add function definitions to the prompt if they exist
+      const ollamaMessages = this.mapToOllamaMessages(messages);
+      let prompt = ollamaMessages;
+      
+      // If there are function definitions, add them to the prompt
+      if (options?.functions && options.functions.length > 0) {
+        prompt += "\n\nYou have access to the following functions:\n";
+        
+        for (const func of options.functions) {
+          prompt += `\nFunction: ${func.name}\n`;
+          prompt += `Description: ${func.description}\n`;
+          prompt += "Parameters:\n";
+          
+          for (const [key, value] of Object.entries(func.parameters.properties)) {
+            const required = (func.parameters.required || []).includes(key) 
+              ? "(required)" 
+              : "(optional)";
+            prompt += `  - ${key}: ${value.type} ${required} - ${value.description || ''}\n`;
+          }
+          
+          prompt += "\n";
+        }
+        
+        prompt += "\nTo call a function, respond in the format:\n";
+        prompt += "```json\n{\"function\": \"function_name\", \"arguments\": {\"arg1\": \"value1\", \"arg2\": \"value2\"}}\n```\n\n";
+      }
+      
+      // Initialize variables to track the complete response
+      let fullContent = '';
+      let functionCall: FunctionCallResult | undefined;
+      
+      // Generate a streaming response
+      const stream = await this.client.chat({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        stream: true
+      });
+      
+      // Process the stream
+      for await (const chunk of stream) {
+        const content = chunk.message?.content || '';
+        
+        if (content) {
+          // Send the token to the callback
+          onToken(content);
+          // Accumulate the content
+          fullContent += content;
+        }
+      }
+      
+      // Check if response has a function call
+      const result: CompletionResult = { content: fullContent };
+      const functionCallMatch = fullContent.match(/```json\s*([\s\S]*?)\s*```/);
+      
+      if (functionCallMatch) {
+        try {
+          const functionCallJson = JSON.parse(functionCallMatch[1]);
+          if (functionCallJson.function && functionCallJson.arguments) {
+            result.functionCall = {
+              name: functionCallJson.function,
+              arguments: functionCallJson.arguments
+            };
+            
+            // Remove the function call from content
+            result.content = fullContent.replace(/```json\s*([\s\S]*?)\s*```/, '').trim();
+          }
+        } catch (error) {
+          console.warn('Failed to parse function call from Ollama response', error);
+        }
+      }
+      
+      // Track token usage (Ollama may provide token stats in response)
+      const responseAny = stream as any;
+      let inputTokens = 0;
+      let outputTokens = 0;
+      
+      // Check if Ollama reports token usage
+      if (responseAny.prompt_eval_count && responseAny.eval_count) {
+        // Use model-reported token counts when available
+        inputTokens = responseAny.prompt_eval_count;
+        outputTokens = responseAny.eval_count;
+      } else {
+        // Fall back to tiktoken calculation
+        inputTokens = this.calculateInputTokens(messages, prompt);
+        outputTokens = countTokens(result.content, this.model);
+      }
+      
+      // Add usage information to the response
+      result.usage = {
+        inputTokens,
+        outputTokens,
+        model: this.model
+      };
+      
+      return result;
+    } catch (error) {
+      console.error('Error processing streaming with Ollama:', error);
+      throw new Error('Failed to generate streaming completion with Ollama');
+    }
   }
 } 

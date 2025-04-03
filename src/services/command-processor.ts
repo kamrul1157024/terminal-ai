@@ -59,40 +59,36 @@ export class CommandProcessor {
   
   /**
    * Handle a function call from the LLM
-   * @param functionCall Function call result
+   * @param functionCall The function call details
    * @param history Conversation history to update
    */
   private async handleFunctionCall(
-    functionCall: FunctionCallResult, 
+    functionCall: FunctionCallResult,
     history: Message[]
   ): Promise<void> {
-    const { name, arguments: args } = functionCall;
-    const handler = this.functionHandlers.get(name);
+    const handler = this.functionHandlers.get(functionCall.name);
     
     if (!handler) {
-      console.error(`Function "${name}" was called but no handler is registered`);
-      return;
+      throw new Error(`No handler registered for function: ${functionCall.name}`);
     }
     
     try {
-      // Execute the function handler
+      // Parse arguments if they're a string
+      const args = typeof functionCall.arguments === 'string' 
+        ? JSON.parse(functionCall.arguments)
+        : functionCall.arguments;
+        
       const result = await handler(args);
       
-      // Add function response to history
+      // Add function result to history
       history.push({
         role: MessageRole.FUNCTION,
-        name,
+        name: functionCall.name,
         content: result
       });
-    } catch (error) {
-      console.error(`Error executing function "${name}":`, error);
-      
-      // Add error to history
-      history.push({
-        role: MessageRole.FUNCTION,
-        name,
-        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
+    } catch (error: any) {
+      console.error(`Error executing function ${functionCall.name}:`, error);
+      throw new Error(`Function execution failed: ${error.message}`);
     }
   }
   
@@ -101,8 +97,9 @@ export class CommandProcessor {
    * @param input User's natural language input
    * @param conversationHistory Optional previous conversation history
    * @returns The terminal command to execute
+   * @deprecated Use processCommand instead, which now uses streaming by default
    */
-  async processCommand(
+  async processCommandNonStreaming(
     input: string, 
     conversationHistory: Message[] = []
   ): Promise<string> {
@@ -148,6 +145,76 @@ export class CommandProcessor {
           { role: MessageRole.SYSTEM, content: this.systemPrompt },
           ...history
         ],
+        { function_call: 'none' } // Don't call functions again
+      );
+      
+      // Display cost information for the final completion if enabled
+      if (this.showCostInfo && finalCompletion.usage) {
+        displayCostInfo(finalCompletion.usage);
+      }
+      
+      return finalCompletion.content;
+    }
+    
+    // Return the content if no function was called
+    return completion.content;
+  }
+  
+  /**
+   * Process a natural language command using the LLM provider
+   * @param input User's natural language input
+   * @param onToken Optional callback function for each token received (defaults to process.stdout.write)
+   * @param conversationHistory Optional previous conversation history
+   * @returns The terminal command to execute
+   */
+  async processCommand(
+    input: string, 
+    onToken: (token: string) => void = (token) => process.stdout.write(token),
+    conversationHistory: Message[] = []
+  ): Promise<string> {
+    // Create a copy of the conversation history to work with
+    const history = [...conversationHistory];
+    
+    // Create messages array with system prompt and user input
+    const messages: Message[] = [
+      { role: MessageRole.SYSTEM, content: this.systemPrompt },
+      ...history,
+      { role: MessageRole.USER, content: input }
+    ];
+    
+    // Prepare options with registered functions
+    const options: CompletionOptions = {};
+    if (this.functions.length > 0) {
+      options.functions = this.functions;
+      options.function_call = 'auto';
+    }
+    
+    // Generate completion using the LLM provider with streaming
+    const completion = await this.llmProvider.generateStreamingCompletion(messages, onToken, options);
+    
+    // Display cost information if enabled and usage data is available
+    if (this.showCostInfo && completion.usage) {
+      displayCostInfo(completion.usage);
+    }
+    
+    // If a function was called, handle it and continue the conversation
+    if (completion.functionCall) {
+      // Add the model's response to history
+      history.push({
+        role: MessageRole.ASSISTANT,
+        content: completion.content || ''
+      });
+      
+      // Handle the function call
+      await this.handleFunctionCall(completion.functionCall, history);
+      
+      // Generate a final response after the function call
+      const finalCompletion = await this.llmProvider.generateStreamingCompletion(
+        [
+          { role: MessageRole.SYSTEM, content: this.systemPrompt },
+          ...history
+        ],
+        onToken,
         { function_call: 'none' } // Don't call functions again
       );
       

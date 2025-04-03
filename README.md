@@ -8,7 +8,7 @@ A CLI application that uses AI to process natural language commands and execute 
 
 ## Features
 
-- Convert natural language to terminal commands
+- Convert natural language to terminal commands with real-time streaming responses
 - Special handling for potentially dangerous commands
 - Automatic sudo escalation when required
 - Configurable AI provider support
@@ -81,7 +81,7 @@ This will guide you through setting up your preferred AI provider and API key. T
 
 ### Basic Mode
 
-In basic mode, the AI converts your natural language request into a single terminal command and executes it:
+In basic mode, the AI converts your natural language request into a single terminal command and executes it. The response is streamed in real-time for instant feedback:
 
 ```
 ai "your command in natural language"
@@ -100,7 +100,7 @@ When using a potentially destructive command, the application will ask for confi
 
 ### Agent Mode
 
-In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission:
+In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission. All responses are streamed in real-time:
 
 ```
 ai --agent "your task description"
@@ -115,7 +115,7 @@ ai -a "your task description"
 ```
 
 The agent will:
-- Analyze your request and suggest appropriate commands
+- Analyze your request and suggest appropriate commands in real-time
 - Provide reasoning for each suggested command
 - Ask for confirmation before executing potentially dangerous commands
 - Return command output to the AI for further analysis
