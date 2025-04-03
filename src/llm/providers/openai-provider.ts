@@ -6,8 +6,11 @@ import {
   MessageRole, 
   CompletionOptions,
   CompletionResult,
-  FunctionDefinition
+  FunctionDefinition,
+  TokenUsage
 } from '../interface';
+import { LLMProviderType } from '../index';
+import { countPromptTokens, countTokens } from '../../utils/token-counter';
 
 /**
  * OpenAI implementation of the LLM Provider interface
@@ -29,6 +32,14 @@ export class OpenAIProvider implements LLMProvider {
       apiKey: config.apiKey
     });
     this.model = config.model || 'gpt-4o';
+  }
+  
+  /**
+   * Get the current model being used by the provider
+   * @returns The model ID/name
+   */
+  getModel(): string {
+    return this.model;
   }
 
   /**
@@ -122,10 +133,34 @@ export class OpenAIProvider implements LLMProvider {
         }
       }
       
+      // Track token usage
+      const usage: TokenUsage = {
+        // Use API reported token counts if available, otherwise estimate
+        inputTokens: response.usage?.prompt_tokens || this.estimateInputTokens(messages),
+        outputTokens: response.usage?.completion_tokens || countTokens(content, this.model),
+        model: this.model
+      };
+      
+      result.usage = usage;
+      
       return result;
     } catch (error) {
       console.error('Error processing with OpenAI:', error);
       throw new Error('Failed to generate completion with OpenAI');
     }
+  }
+  
+  /**
+   * Estimate the number of tokens in the input messages
+   * @private
+   */
+  private estimateInputTokens(messages: Message[]): number {
+    let totalTokens = 0;
+    
+    for (const message of messages) {
+      totalTokens += countPromptTokens(message.content, LLMProviderType.OPENAI, this.model);
+    }
+    
+    return totalTokens;
   }
 } 

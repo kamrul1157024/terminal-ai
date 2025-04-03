@@ -6,8 +6,11 @@ import {
   MessageRole, 
   CompletionOptions,
   CompletionResult,
-  FunctionDefinition
+  FunctionDefinition,
+  TokenUsage
 } from '../interface';
+import { LLMProviderType } from '../index';
+import { countPromptTokens, countTokens } from '../../utils/token-counter';
 
 /**
  * Ollama implementation of the LLM Provider interface
@@ -27,6 +30,14 @@ export class OllamaProvider implements LLMProvider {
       host: this.baseUrl
     });
     this.model = config.model || 'llama3';
+  }
+
+  /**
+   * Get the current model being used by the provider
+   * @returns The model ID/name
+   */
+  getModel(): string {
+    return this.model;
   }
 
   /**
@@ -99,6 +110,29 @@ export class OllamaProvider implements LLMProvider {
         }
       }
       
+      // Track token usage (Ollama may provide token stats in response)
+      const responseAny = response as any;
+      let inputTokens = 0;
+      let outputTokens = 0;
+      
+      // Check if Ollama reports token usage
+      if (responseAny.prompt_eval_count && responseAny.eval_count) {
+        // Use model-reported token counts when available
+        inputTokens = responseAny.prompt_eval_count;
+        outputTokens = responseAny.eval_count;
+      } else {
+        // Fall back to tiktoken calculation
+        inputTokens = this.calculateInputTokens(messages, prompt);
+        outputTokens = countTokens(content, this.model);
+      }
+      
+      // Add usage information to the response
+      result.usage = {
+        inputTokens,
+        outputTokens,
+        model: this.model
+      };
+      
       return result;
     } catch (error) {
       console.error('Error processing with Ollama:', error);
@@ -139,5 +173,17 @@ export class OllamaProvider implements LLMProvider {
     }
     
     return prompt.trim();
+  }
+  
+  /**
+   * Calculate input tokens using tiktoken (used as fallback)
+   * @param messages Original messages array
+   * @param formattedPrompt The final formatted prompt sent to Ollama
+   * @returns Estimated token count
+   */
+  private calculateInputTokens(messages: Message[], formattedPrompt: string): number {
+    // For Ollama, it's better to count the final formatted prompt
+    // since we add function definitions directly to the prompt
+    return countTokens(formattedPrompt, this.model);
   }
 } 

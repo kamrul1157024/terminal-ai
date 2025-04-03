@@ -9,6 +9,8 @@ import {
   executeCommandFunction,
   executeCommandHandler
 } from '../functions';
+import { CumulativeCostTracker } from '../utils/pricing-calculator';
+import { costTracker } from './ai';
 
 /**
  * Agent system prompt - instructs the LLM to act as a terminal assistant
@@ -29,9 +31,9 @@ export async function runAgentMode(initialInput: string): Promise<void> {
     console.log('The agent will suggest commands and execute them with your permission.');
     console.log('Type "exit" or "quit" to end the session.\n');
     
-    // Create the LLM provider and command processor
+    // Create the LLM provider and command processor with cost tracking
     const llmProvider = createLLMProvider();
-    const commandProcessor = new CommandProcessor(llmProvider, AGENT_SYSTEM_PROMPT);
+    const commandProcessor = new CommandProcessor(llmProvider, AGENT_SYSTEM_PROMPT, true);
     
     // Register functions
     commandProcessor.registerFunction(executeCommandFunction, executeCommandHandler);
@@ -72,6 +74,9 @@ export async function runAgentMode(initialInput: string): Promise<void> {
       
       userInput = nextInput;
     }
+    
+    // Display cumulative cost information for the session
+    costTracker.displayTotalCost();
     
     console.log('Exiting agent mode. Goodbye!');
   } catch (error) {

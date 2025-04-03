@@ -1,14 +1,18 @@
 import inquirer from 'inquirer';
 import { execTerminalCommand, isSystemModifyingCommand } from '../utils';
-import { createLLMProvider } from '../llm';
+import { createLLMProvider, LLMProviderType } from '../llm';
 import { CommandProcessor } from '../services';
 import { getSystemInfoFunction, getSystemInfoHandler } from '../functions';
+import { CumulativeCostTracker } from '../utils/pricing-calculator';
 import { runAgentMode } from './agent';
 
 // Default system prompt for basic mode
 const BASIC_SYSTEM_PROMPT = 
   'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
   'Respond with ONLY the terminal command, nothing else.';
+
+// Create a global cost tracker for the application
+export const costTracker = new CumulativeCostTracker();
 
 /**
  * Process an AI command in basic mode
@@ -20,7 +24,7 @@ export async function processAiCommand(input: string): Promise<void> {
     
     // Create the LLM provider and command processor
     const llmProvider = createLLMProvider();
-    const commandProcessor = new CommandProcessor(llmProvider, BASIC_SYSTEM_PROMPT);
+    const commandProcessor = new CommandProcessor(llmProvider, BASIC_SYSTEM_PROMPT, true);
     
     // Register available functions (only system info in basic mode)
     commandProcessor.registerFunction(getSystemInfoFunction, getSystemInfoHandler);

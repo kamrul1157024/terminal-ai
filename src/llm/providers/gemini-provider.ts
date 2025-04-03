@@ -6,8 +6,11 @@ import {
   MessageRole, 
   CompletionOptions,
   CompletionResult,
-  FunctionDefinition
+  FunctionDefinition,
+  TokenUsage
 } from '../interface';
+import { LLMProviderType } from '../index';
+import { countPromptTokens, countTokens } from '../../utils/token-counter';
 
 /**
  * Gemini implementation of the LLM Provider interface
@@ -27,6 +30,14 @@ export class GeminiProvider implements LLMProvider {
     
     this.client = new GoogleGenerativeAI(config.apiKey);
     this.model = config.model || 'gemini-1.5-pro';
+  }
+
+  /**
+   * Get the current model being used by the provider
+   * @returns The model ID/name
+   */
+  getModel(): string {
+    return this.model;
   }
 
   /**
@@ -73,6 +84,28 @@ export class GeminiProvider implements LLMProvider {
         };
       }
       
+      // Calculate token usage, using model-reported counts if available
+      let inputTokens = 0;
+      let outputTokens = 0;
+      
+      // Gemini API might provide token counts through the response object
+      if (responseAny.usageMetadata?.promptTokenCount && responseAny.usageMetadata?.candidatesTokenCount) {
+        // Use model-reported token counts when available (more accurate)
+        inputTokens = responseAny.usageMetadata.promptTokenCount;
+        outputTokens = responseAny.usageMetadata.candidatesTokenCount;
+      } else {
+        // Fall back to tiktoken calculation when model doesn't report usage
+        inputTokens = this.calculateInputTokens(messages);
+        outputTokens = countTokens(content, this.model);
+      }
+      
+      // Add usage information to the response
+      response.usage = {
+        inputTokens,
+        outputTokens,
+        model: this.model
+      };
+      
       return response;
     } catch (error) {
       console.error('Error processing with Gemini:', error);
@@ -113,6 +146,21 @@ export class GeminiProvider implements LLMProvider {
     }
     
     return prompt.trim();
+  }
+  
+  /**
+   * Calculate input tokens using tiktoken (used as fallback)
+   * @param messages Array of messages
+   * @returns Estimated token count
+   */
+  private calculateInputTokens(messages: Message[]): number {
+    let totalTokens = 0;
+    
+    for (const msg of messages) {
+      totalTokens += countPromptTokens(msg.content, LLMProviderType.GEMINI, this.model);
+    }
+    
+    return totalTokens;
   }
   
   /**

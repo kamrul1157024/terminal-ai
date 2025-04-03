@@ -4,8 +4,10 @@ import {
   MessageRole, 
   FunctionDefinition,
   CompletionOptions,
-  FunctionCallResult
+  FunctionCallResult,
+  TokenUsage
 } from '../llm/interface';
+import { displayCostInfo } from '../utils/pricing-calculator';
 
 /**
  * Default system prompt for terminal command generation
@@ -27,66 +29,70 @@ export class CommandProcessor {
   private systemPrompt: string;
   private functions: FunctionDefinition[] = [];
   private functionHandlers: Map<string, FunctionHandler> = new Map();
+  private showCostInfo: boolean = true;
   
   /**
    * Create a new command processor
    * @param llmProvider The LLM provider to use
    * @param systemPrompt Optional custom system prompt
+   * @param showCostInfo Whether to display cost information (default: true)
    */
   constructor(
     llmProvider: LLMProvider, 
-    systemPrompt: string = DEFAULT_TERMINAL_SYSTEM_PROMPT
+    systemPrompt: string = DEFAULT_TERMINAL_SYSTEM_PROMPT,
+    showCostInfo: boolean = true
   ) {
     this.llmProvider = llmProvider;
     this.systemPrompt = systemPrompt;
+    this.showCostInfo = showCostInfo;
   }
   
   /**
-   * Register a function that can be called by the LLM
-   * @param functionDef Function definition
+   * Register a function for the LLM to use
+   * @param definition Function definition
    * @param handler Function handler implementation
    */
-  registerFunction(functionDef: FunctionDefinition, handler: FunctionHandler): void {
-    this.functions.push(functionDef);
-    this.functionHandlers.set(functionDef.name, handler);
+  registerFunction(definition: FunctionDefinition, handler: FunctionHandler): void {
+    this.functions.push(definition);
+    this.functionHandlers.set(definition.name, handler);
   }
   
   /**
-   * Handle a function call by invoking the appropriate handler
-   * @param functionCall The function call from the LLM
-   * @param conversationHistory Current conversation history
-   * @returns Result of the function call
+   * Handle a function call from the LLM
+   * @param functionCall Function call result
+   * @param history Conversation history to update
    */
   private async handleFunctionCall(
-    functionCall: FunctionCallResult,
-    conversationHistory: Message[]
-  ): Promise<string> {
-    const handler = this.functionHandlers.get(functionCall.name);
+    functionCall: FunctionCallResult, 
+    history: Message[]
+  ): Promise<void> {
+    const { name, arguments: args } = functionCall;
+    const handler = this.functionHandlers.get(name);
     
     if (!handler) {
-      throw new Error(`No handler registered for function: ${functionCall.name}`);
+      console.error(`Function "${name}" was called but no handler is registered`);
+      return;
     }
     
     try {
-      const result = await handler(functionCall.arguments);
+      // Execute the function handler
+      const result = await handler(args);
       
-      // Add the function call and result to the conversation history
-      conversationHistory.push({
-        role: MessageRole.ASSISTANT,
-        content: '',
-        name: functionCall.name
-      });
-      
-      conversationHistory.push({
+      // Add function response to history
+      history.push({
         role: MessageRole.FUNCTION,
-        name: functionCall.name,
+        name,
         content: result
       });
-      
-      return result;
     } catch (error) {
-      console.error(`Error executing function ${functionCall.name}:`, error);
-      throw error;
+      console.error(`Error executing function "${name}":`, error);
+      
+      // Add error to history
+      history.push({
+        role: MessageRole.FUNCTION,
+        name,
+        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     }
   }
   
@@ -120,6 +126,11 @@ export class CommandProcessor {
     // Generate completion using the LLM provider
     const completion = await this.llmProvider.generateCompletion(messages, options);
     
+    // Display cost information if enabled and usage data is available
+    if (this.showCostInfo && completion.usage) {
+      displayCostInfo(completion.usage);
+    }
+    
     // If a function was called, handle it and continue the conversation
     if (completion.functionCall) {
       // Add the model's response to history
@@ -140,10 +151,23 @@ export class CommandProcessor {
         { function_call: 'none' } // Don't call functions again
       );
       
+      // Display cost information for the final completion if enabled
+      if (this.showCostInfo && finalCompletion.usage) {
+        displayCostInfo(finalCompletion.usage);
+      }
+      
       return finalCompletion.content;
     }
     
     // Return the content if no function was called
     return completion.content;
+  }
+  
+  /**
+   * Enable or disable displaying cost information
+   * @param enable Whether to enable cost display
+   */
+  setCostInfoDisplay(enable: boolean): void {
+    this.showCostInfo = enable;
   }
 } 

@@ -6,8 +6,11 @@ import {
   MessageRole, 
   CompletionOptions,
   CompletionResult,
-  FunctionDefinition
+  FunctionDefinition,
+  TokenUsage
 } from '../interface';
+import { LLMProviderType } from '../index';
+import { countPromptTokens, countTokens } from '../../utils/token-counter';
 
 /**
  * Claude implementation of the LLM Provider interface
@@ -29,6 +32,14 @@ export class ClaudeProvider implements LLMProvider {
       apiKey: config.apiKey
     });
     this.model = config.model || 'claude-3-opus-20240229';
+  }
+
+  /**
+   * Get the current model being used by the provider
+   * @returns The model ID/name
+   */
+  getModel(): string {
+    return this.model;
   }
 
   /**
@@ -133,10 +144,43 @@ export class ClaudeProvider implements LLMProvider {
         };
       }
       
+      // Add token usage data using tiktoken
+      const inputTokens = this.calculateInputTokens(messages);
+      const outputTokens = countTokens(content, this.model);
+      
+      result.usage = {
+        inputTokens,
+        outputTokens,
+        model: this.model
+      };
+      
       return result;
     } catch (error) {
       console.error('Error processing with Claude:', error);
       throw new Error('Failed to generate completion with Claude');
     }
+  }
+  
+  /**
+   * Calculate the number of tokens in the input messages
+   * @private
+   */
+  private calculateInputTokens(messages: Message[]): number {
+    let totalTokens = 0;
+    
+    // Count system message tokens
+    const systemMessage = messages.find(msg => msg.role === MessageRole.SYSTEM);
+    if (systemMessage) {
+      totalTokens += countPromptTokens(systemMessage.content, LLMProviderType.CLAUDE, this.model);
+    }
+    
+    // Count other messages
+    for (const msg of messages) {
+      if (msg.role !== MessageRole.SYSTEM) {
+        totalTokens += countPromptTokens(msg.content, LLMProviderType.CLAUDE, this.model);
+      }
+    }
+    
+    return totalTokens;
   }
 } 

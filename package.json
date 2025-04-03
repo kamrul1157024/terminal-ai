@@ -16,11 +16,13 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.24.0",
     "@types/node": "^22.14.0",
+    "chalk": "4.1.2",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "inquirer": "^12.5.0",
     "ollama": "^0.5.14",
     "openai": "^4.91.1",
+    "tiktoken": "^1.0.20",
     "typescript": "^5.8.2",
     "yaml": "^2.7.1"
   },

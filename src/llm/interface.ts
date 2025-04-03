@@ -18,15 +18,15 @@ export interface Message {
 }
 
 /**
- * Function parameter definition
+ * Function parameter for function definitions
  */
 export interface FunctionParameter {
   type: string;
   description?: string;
   enum?: string[];
-  required?: boolean;
-  properties?: Record<string, FunctionParameter>;
-  items?: FunctionParameter;
+  items?: {
+    type: string;
+  };
 }
 
 /**
@@ -64,11 +64,21 @@ export interface CompletionOptions {
 }
 
 /**
- * Completion result with potential function call
+ * Token usage tracking information
+ */
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  model: string;
+}
+
+/**
+ * Completion result with potential function call and token usage
  */
 export interface CompletionResult {
   content: string;
   functionCall?: FunctionCallResult;
+  usage?: TokenUsage;
 }
 
 /**
@@ -85,6 +95,12 @@ export interface LLMProvider {
     messages: Message[], 
     options?: CompletionOptions
   ): Promise<CompletionResult>;
+  
+  /**
+   * Get the current model being used by the provider
+   * @returns The model ID/name
+   */
+  getModel(): string;
 }
 
 /**

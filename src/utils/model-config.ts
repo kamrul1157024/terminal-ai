@@ -4,9 +4,15 @@ import YAML from 'yaml';
 import { LLMProviderType } from '../llm';
 
 // Model configuration interfaces
+export interface ModelPricing {
+  input: number;  // Price per million tokens for input
+  output: number; // Price per million tokens for output
+}
+
 export interface ModelConfig {
   name: string;
   value: string;
+  pricing: ModelPricing;
 }
 
 export interface ProviderModelConfig {
@@ -81,4 +87,42 @@ export function getDefaultModel(provider: LLMProviderType): string {
   }
   
   return config[provider].default;
+}
+
+/**
+ * Get model configuration by model value
+ * @param modelValue The model value/ID
+ * @returns Model configuration or null if not found
+ */
+export function getModelByValue(modelValue: string): ModelConfig | null {
+  const config = readModelsConfig();
+  if (!config) return null;
+  
+  for (const provider of Object.values(config)) {
+    const model = provider.models.find(m => m.value === modelValue);
+    if (model) return model;
+  }
+  
+  return null;
+}
+
+/**
+ * Calculate the cost based on tokens used and model pricing
+ * @param modelValue Model ID/value
+ * @param inputTokens Number of input tokens
+ * @param outputTokens Number of output tokens
+ * @returns The cost in USD
+ */
+export function calculateCost(
+  modelValue: string, 
+  inputTokens: number, 
+  outputTokens: number
+): number {
+  const model = getModelByValue(modelValue);
+  if (!model) return 0;
+  
+  const inputCost = (inputTokens / 1000000) * model.pricing.input;
+  const outputCost = (outputTokens / 1000000) * model.pricing.output;
+  
+  return inputCost + outputCost;
 } 
