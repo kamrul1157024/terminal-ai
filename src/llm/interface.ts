@@ -93,5 +93,6 @@ export interface LLMProvider {
 export interface LLMProviderConfig {
   apiKey?: string;
   model?: string;
+  apiEndpoint?: string;
   [key: string]: any;
 } 

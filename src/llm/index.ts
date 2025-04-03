@@ -1,12 +1,18 @@
 import { LLMProvider, LLMProviderConfig } from './interface';
 import { OpenAIProvider } from './providers/openai-provider';
+import { ClaudeProvider } from './providers/claude-provider';
+import { GeminiProvider } from './providers/gemini-provider';
+import { OllamaProvider } from './providers/ollama-provider';
 import { readConfig } from '../utils/config';
 
 /**
  * Available LLM provider types
  */
 export enum LLMProviderType {
-  OPENAI = 'openai'
+  OPENAI = 'openai',
+  CLAUDE = 'claude',
+  GEMINI = 'gemini',
+  OLLAMA = 'ollama'
   // Add more providers here as they become available
 }
 
@@ -42,10 +48,16 @@ export function createLLMProvider(
   switch (type) {
     case LLMProviderType.OPENAI:
       return new OpenAIProvider(config);
+    case LLMProviderType.CLAUDE:
+      return new ClaudeProvider(config);
+    case LLMProviderType.GEMINI:
+      return new GeminiProvider(config);
+    case LLMProviderType.OLLAMA:
+      return new OllamaProvider(config);
     default:
       throw new Error(`Unsupported LLM provider type: ${type}`);
   }
 }
 
 // Re-export the interfaces
-export { LLMProvider, LLMProviderConfig }; 
+export { LLMProvider, LLMProviderConfig };

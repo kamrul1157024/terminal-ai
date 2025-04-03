@@ -5,6 +5,7 @@ import { processAiCommand } from './commands/ai';
 import { runAgentMode } from './commands/agent';
 import { initCommand } from './commands/init';
 import { configExists } from './utils/config';
+import './utils/model-config'; // Ensure model config is loaded
 
 // Create a new command instance
 const program = new Command();

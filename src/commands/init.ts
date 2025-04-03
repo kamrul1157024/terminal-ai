@@ -1,6 +1,7 @@
 import inquirer from 'inquirer';
 import { writeConfig, configExists } from '../utils/config';
 import { LLMProviderType } from '../llm';
+import { getProviderModels, getDefaultModel } from '../utils/model-config';
 
 /**
  * Initialize the Terminal AI CLI by setting up the config
@@ -34,59 +35,79 @@ export async function initCommand(): Promise<void> {
         name: 'provider',
         message: 'Select the AI provider to use:',
         choices: [
-          { name: 'OpenAI', value: LLMProviderType.OPENAI }
+          { name: 'OpenAI', value: LLMProviderType.OPENAI },
+          { name: 'Claude (Anthropic)', value: LLMProviderType.CLAUDE },
+          { name: 'Gemini (Google)', value: LLMProviderType.GEMINI },
+          { name: 'Ollama (Local)', value: LLMProviderType.OLLAMA }
           // Add more providers here as they become available
         ]
       }
     ]);
     
-    // Get API key
-    const { apiKey } = await inquirer.prompt([
-      {
-        type: 'password',
-        name: 'apiKey',
-        message: 'Enter your API key:',
-        validate: (input) => input.length > 0 ? true : 'API key is required'
-      }
-    ]);
+    let apiKey = '';
+    let apiEndpoint = '';
     
-    // Get model if OpenAI
-    let model = '';
-    if (provider === LLMProviderType.OPENAI) {
+    // Only prompt for API key if not using Ollama (which might not need an API key)
+    if (provider !== LLMProviderType.OLLAMA) {
+      const { key } = await inquirer.prompt([
+        {
+          type: 'password',
+          name: 'key',
+          message: 'Enter your API key:',
+          validate: (input) => input.length > 0 ? true : 'API key is required'
+        }
+      ]);
+      apiKey = key;
+    } else {
+      // For Ollama, prompt for endpoint
+      const { endpoint } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'endpoint',
+          message: 'Enter Ollama API endpoint (default: http://localhost:11434):',
+          default: 'http://localhost:11434'
+        }
+      ]);
+      apiEndpoint = endpoint;
+    }
+    
+    // Get models from configuration file for the selected provider
+    const models = getProviderModels(provider);
+    const defaultModel = getDefaultModel(provider);
+    
+    // Get model based on provider
+    let model = defaultModel;
+    
+    if (models.length > 0) {
       const { modelChoice } = await inquirer.prompt([
         {
           type: 'list',
           name: 'modelChoice',
-          message: 'Select the OpenAI model to use:',
-          choices: [
-            { name: 'GPT-4o (Default)', value: 'gpt-4o' },
-            { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-            { name: 'Custom...', value: 'custom' }
-          ]
+          message: `Select the ${provider} model to use:`,
+          choices: models.map(m => ({ name: m.name, value: m.value }))
         }
       ]);
       
-      if (modelChoice === 'custom') {
-        const { customModel } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'customModel',
-            message: 'Enter the model name:',
-            validate: (input) => input.length > 0 ? true : 'Model name is required'
-          }
-        ]);
-        model = customModel;
-      } else {
-        model = modelChoice;
-      }
+      model = modelChoice;
     }
     
     // Save the config
-    const success = writeConfig({
+    const config: any = {
       provider,
-      apiKey,
       model
-    });
+    };
+    
+    // Only add API key if it's set
+    if (apiKey) {
+      config.apiKey = apiKey;
+    }
+    
+    // Add API endpoint for Ollama
+    if (apiEndpoint) {
+      config.apiEndpoint = apiEndpoint;
+    }
+    
+    const success = writeConfig(config);
     
     if (success) {
       console.log('Configuration saved successfully!');

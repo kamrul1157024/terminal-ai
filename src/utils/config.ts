@@ -9,8 +9,9 @@ import { LLMProviderType } from '../llm';
  */
 export interface TerminalAIConfig {
   provider: LLMProviderType;
-  apiKey: string;
+  apiKey?: string;
   model?: string;
+  apiEndpoint?: string;
 }
 
 // Default configuration path
