@@ -1,4 +1,4 @@
-# Terminal AI
+# AI CLI
 
 A CLI application that uses AI to process natural language commands and execute them in the terminal.
 
@@ -9,8 +9,43 @@ A CLI application that uses AI to process natural language commands and execute 
 - Automatic sudo escalation when required
 - Configurable AI provider support
 - Interactive agent mode with conversational interface
+- Support for multiple AI providers:
+  - OpenAI
+  - Claude (Anthropic)
+  - Gemini (Google)
+  - Ollama (local models)
 
 ## Installation
+
+### Requirements
+
+- Node.js v20.0.0 or higher
+
+### Using npx (recommended)
+
+You can run AI CLI without installing it using npx:
+
+```bash
+npx ai init
+npx ai "your command in natural language"
+```
+
+### Global Installation
+
+If you prefer to install the package globally:
+
+```bash
+npm install -g ai
+```
+
+Then you can use the `ai` command directly:
+
+```bash
+ai init
+ai "your command in natural language"
+```
+
+### From Source
 
 1. Clone this repository
 2. Install dependencies:
@@ -32,6 +67,8 @@ Run the initialization command to configure your AI provider:
 
 ```
 ai init
+# or
+npx ai init
 ```
 
 This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai.yaml`.
@@ -44,6 +81,8 @@ In basic mode, the AI converts your natural language request into a single termi
 
 ```
 ai "your command in natural language"
+# or
+npx ai "your command in natural language"
 ```
 
 #### Examples
@@ -61,6 +100,8 @@ In agent mode, the AI maintains a continuous conversation, suggesting and execut
 
 ```
 ai --agent "your task description"
+# or
+npx ai --agent "your task description"
 ```
 
 Or use the shorthand:
@@ -84,6 +125,15 @@ To exit agent mode, type `exit` or `quit`.
 ai -a "help me find large files on my system"
 ai -a "set up a basic Node.js project"
 ```
+
+## Cost Tracking
+
+AI CLI includes built-in cost tracking for all API-based providers:
+
+- Shows token usage after each request
+- Displays the estimated cost based on provider pricing
+- Tracks cumulative usage during agent sessions
+- Supports accurate token counting using tiktoken
 
 ## Development
 

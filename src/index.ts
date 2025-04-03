@@ -7,13 +7,16 @@ import { initCommand } from './commands/init';
 import { configExists } from './utils/config';
 import './utils/model-config'; // Ensure model config is loaded
 
+// Package version from package.json
+const packageJson = require('../package.json');
+
 // Create a new command instance
 const program = new Command();
 
 program
   .name('ai')
   .description('AI-powered terminal command interpreter')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 // Add init command
 program
