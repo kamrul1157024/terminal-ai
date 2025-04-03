@@ -15,6 +15,12 @@ const BASIC_SYSTEM_PROMPT =
   'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
   'Respond with ONLY the terminal command, nothing else.';
 
+// System prompt when context is provided
+const CONTEXT_SYSTEM_PROMPT = 
+  'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
+  'Use the provided context to inform your command generation. ' +
+  'Respond with ONLY the terminal command, nothing else.';
+
 // Create a global cost tracker for the application
 export const costTracker = new CumulativeCostTracker();
 
@@ -22,22 +28,66 @@ export const costTracker = new CumulativeCostTracker();
 let conversationHistory: Message[] = [];
 
 /**
+ * Read data from stdin if available
+ * @returns Promise that resolves with the stdin data or null if no data was piped
+ */
+async function readFromStdin(): Promise<string | null> {
+  // Check if we're receiving piped input
+  if (!process.stdin.isTTY) {
+    return new Promise((resolve) => {
+      let data = '';
+      process.stdin.setEncoding('utf8');
+      
+      process.stdin.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      process.stdin.on('end', () => {
+        resolve(data.trim());
+      });
+    });
+  }
+  return null;
+}
+
+/**
  * Process an AI command in basic mode
  * @param input User input to be processed
+ * @param context Optional context from piped input
  */
-export async function processAiCommand(input: string): Promise<void> {
+export async function processAiCommand(input: string, context?: string): Promise<void> {
   try {
     console.log(`Processing: "${input}"`);
+    if (context) {
+      console.log('With context:', context);
+    }
     
     // Create the LLM provider and command processor
     const llmProvider = createLLMProvider();
-    const commandProcessor = new CommandProcessor(llmProvider, BASIC_SYSTEM_PROMPT, true);
+    const commandProcessor = new CommandProcessor(
+      llmProvider, 
+      context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT,
+      true
+    );
     
     // Register available functions (only system info in basic mode)
     commandProcessor.registerFunction(getSystemInfoFunction, getSystemInfoHandler);
     
+    // If we have context, add it to the conversation history
+    const history: Message[] = [];
+    if (context) {
+      history.push({
+        role: MessageRole.USER,
+        content: `Context: ${context}`
+      });
+    }
+    
     // Process the natural language command
-    const terminalCommand = await commandProcessor.processCommand(input);
+    const terminalCommand = await commandProcessor.processCommand(
+      input,
+      (token: string) => process.stdout.write(token),
+      history
+    );
     
     // Execute the command with appropriate handling
     await executeTerminalCommand(terminalCommand);
@@ -118,6 +168,9 @@ export function aiCommand(program: Command) {
           process.exit(1);
         }
         
+        // Read from stdin if available
+        const context = await readFromStdin();
+        
         // Create LLM provider
         const llmProvider = createLLMProvider(config.provider, {
           apiKey: config.apiKey,
@@ -125,12 +178,23 @@ export function aiCommand(program: Command) {
           apiEndpoint: config.apiEndpoint
         });
         
-        // Create command processor
-        const processor = new CommandProcessor(llmProvider);
+        // Create command processor with appropriate system prompt
+        const processor = new CommandProcessor(
+          llmProvider,
+          context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT
+        );
         
         // Check if we're in agent mode
         if (options.agent) {
           console.log(chalk.blue('Agent mode activated. Type "exit" or "quit" to end the session.'));
+          
+          // If we have context, add it to the conversation history
+          if (context) {
+            conversationHistory.push({
+              role: MessageRole.USER,
+              content: `Context: ${context}`
+            });
+          }
           
           // If input was provided, process it first
           if (input.length > 0) {
@@ -200,11 +264,21 @@ export function aiCommand(program: Command) {
           const userInput = input.join(' ');
           console.log(chalk.green(`\nYou: ${userInput}`));
           
+          // Initialize history with context if available
+          const history: Message[] = [];
+          if (context) {
+            history.push({
+              role: MessageRole.USER,
+              content: `Context: ${context}`
+            });
+          }
+          
           // Process with streaming output
           console.log(chalk.yellow('\nAI: '));
           const command = await processor.processCommand(
             userInput,
-            (token: string) => process.stdout.write(token)
+            (token: string) => process.stdout.write(token),
+            history
           );
           
           console.log(chalk.cyan(`\n\nExecuting: ${command}`));

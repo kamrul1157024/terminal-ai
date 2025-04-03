@@ -89,6 +89,16 @@ ai "your command in natural language"
 npx ai "your command in natural language"
 ```
 
+You can also pipe output from other commands to provide context:
+
+```
+ls -la | ai "find all JavaScript files in this list"
+cat error.log | ai "explain this error and suggest a fix"
+git status | ai "which files were modified today"
+```
+
+The AI will use the piped input as context when generating the appropriate command.
+
 #### Examples
 
 ```
