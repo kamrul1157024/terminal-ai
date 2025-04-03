@@ -8,6 +8,7 @@ A CLI application that uses AI to process natural language commands and execute 
 - Special handling for potentially dangerous commands
 - Automatic sudo escalation when required
 - Configurable AI provider support
+- Interactive agent mode with conversational interface
 
 ## Installation
 
@@ -37,11 +38,15 @@ This will guide you through setting up your preferred AI provider and API key. T
 
 ## Usage
 
+### Basic Mode
+
+In basic mode, the AI converts your natural language request into a single terminal command and executes it:
+
 ```
 ai "your command in natural language"
 ```
 
-### Examples
+#### Examples
 
 ```
 ai "list all files in the current directory"
@@ -49,6 +54,36 @@ ai "delete all files in current folder"
 ```
 
 When using a potentially destructive command, the application will ask for confirmation before executing.
+
+### Agent Mode
+
+In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission:
+
+```
+ai --agent "your task description"
+```
+
+Or use the shorthand:
+
+```
+ai -a "your task description"
+```
+
+The agent will:
+- Analyze your request and suggest appropriate commands
+- Provide reasoning for each suggested command
+- Ask for confirmation before executing potentially dangerous commands
+- Return command output to the AI for further analysis
+- Maintain conversation context for multi-step tasks
+
+To exit agent mode, type `exit` or `quit`.
+
+#### Examples
+
+```
+ai -a "help me find large files on my system"
+ai -a "set up a basic Node.js project"
+```
 
 ## Development
 

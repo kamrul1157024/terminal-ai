@@ -51,6 +51,11 @@ export interface FunctionCallResult {
 }
 
 /**
+ * Function handler type for implementing function calls
+ */
+export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
+
+/**
  * Completion options
  */
 export interface CompletionOptions {

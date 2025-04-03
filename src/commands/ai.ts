@@ -2,49 +2,16 @@ import inquirer from 'inquirer';
 import { execTerminalCommand, isSystemModifyingCommand } from '../utils';
 import { createLLMProvider } from '../llm';
 import { CommandProcessor } from '../services';
-import { FunctionDefinition } from '../llm/interface';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { getSystemInfoFunction, getSystemInfoHandler } from '../functions';
+import { runAgentMode } from './agent';
 
-const execPromise = promisify(exec);
-
-// Define a function for getting system information
-const getSystemInfoFunction: FunctionDefinition = {
-  name: 'get_system_info',
-  description: 'Get information about the system',
-  parameters: {
-    type: 'object',
-    properties: {
-      info_type: {
-        type: 'string',
-        description: 'Type of information to retrieve',
-        enum: ['os', 'cpu', 'memory', 'disk']
-      }
-    },
-    required: ['info_type']
-  }
-};
-
-// Implementation of the getSystemInfo function
-async function getSystemInfoHandler(args: Record<string, any>): Promise<string> {
-  const infoType = args.info_type;
-  
-  switch (infoType) {
-    case 'os':
-      return (await execPromise('uname -a')).stdout;
-    case 'cpu':
-      return (await execPromise('sysctl -n machdep.cpu.brand_string')).stdout;
-    case 'memory':
-      return (await execPromise('vm_stat')).stdout;
-    case 'disk':
-      return (await execPromise('df -h')).stdout;
-    default:
-      return 'Unknown info type requested';
-  }
-}
+// Default system prompt for basic mode
+const BASIC_SYSTEM_PROMPT = 
+  'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
+  'Respond with ONLY the terminal command, nothing else.';
 
 /**
- * Process an AI command and execute it if confirmed
+ * Process an AI command in basic mode
  * @param input User input to be processed
  */
 export async function processAiCommand(input: string): Promise<void> {
@@ -53,54 +20,66 @@ export async function processAiCommand(input: string): Promise<void> {
     
     // Create the LLM provider and command processor
     const llmProvider = createLLMProvider();
-    const commandProcessor = new CommandProcessor(llmProvider);
+    const commandProcessor = new CommandProcessor(llmProvider, BASIC_SYSTEM_PROMPT);
     
-    // Register sample function
+    // Register available functions (only system info in basic mode)
     commandProcessor.registerFunction(getSystemInfoFunction, getSystemInfoHandler);
     
     // Process the natural language command
     const terminalCommand = await commandProcessor.processCommand(input);
     
-    if (isSystemModifyingCommand(terminalCommand)) {
-      // Handle commands that modify the system
-      console.log(`>>>> \`${terminalCommand}\` y or n?`);
-      
-      const { confirm } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'confirm',
-          message: '',
-        }
-      ]);
-      
-      if (confirm.toLowerCase() === 'y') {
-        try {
-          await execTerminalCommand(terminalCommand, false);
-        } catch (error) {
-          // If command fails, try with sudo
-          const { sudoConfirm } = await inquirer.prompt([
-            {
-              type: 'input',
-              name: 'sudoConfirm',
-              message: 'Command failed. Retry with sudo? (y/n):',
-            }
-          ]);
-          
-          if (sudoConfirm.toLowerCase() === 'y') {
-            await execTerminalCommand(terminalCommand, true);
-          }
-        }
-      }
-    } else {
-      // Handle read-only commands - execute without confirmation
-      console.log(`Executing: ${terminalCommand}`);
-      try {
-        await execTerminalCommand(terminalCommand, false);
-      } catch (error) {
-        console.error('Command execution failed');
-      }
-    }
+    // Execute the command with appropriate handling
+    await executeTerminalCommand(terminalCommand);
   } catch (error) {
     console.error('Error:', error);
   }
-} 
+}
+
+/**
+ * Execute a terminal command with appropriate safety checks
+ * @param command The command to execute
+ */
+async function executeTerminalCommand(command: string): Promise<void> {
+  if (isSystemModifyingCommand(command)) {
+    // Handle commands that modify the system
+    console.log(`>>>> \`${command}\` y or n?`);
+    
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'confirm',
+        message: '',
+      }
+    ]);
+    
+    if (confirm.toLowerCase() === 'y') {
+      try {
+        await execTerminalCommand(command, false);
+      } catch (error) {
+        // If command fails, try with sudo
+        const { sudoConfirm } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'sudoConfirm',
+            message: 'Command failed. Retry with sudo? (y/n):',
+          }
+        ]);
+        
+        if (sudoConfirm.toLowerCase() === 'y') {
+          await execTerminalCommand(command, true);
+        }
+      }
+    }
+  } else {
+    // Handle read-only commands - execute without confirmation
+    console.log(`Executing: ${command}`);
+    try {
+      await execTerminalCommand(command, false);
+    } catch (error) {
+      console.error('Command execution failed');
+    }
+  }
+}
+
+// Re-export the agent mode function
+export { runAgentMode }; 

@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import { processAiCommand } from './commands/ai';
+import { runAgentMode } from './commands/agent';
 import { initCommand } from './commands/init';
 import { configExists } from './utils/config';
 
@@ -24,14 +25,19 @@ program
 // Add the main command
 program
   .argument('<input>', 'The command to interpret')
-  .action(async (input: string) => {
+  .option('-a, --agent', 'Run in agent mode with continuous conversation')
+  .action(async (input: string, options) => {
     // Check if config exists
     if (!configExists()) {
       console.log('Terminal AI is not configured. Running setup wizard...');
       await initCommand();
     }
     
-    await processAiCommand(input);
+    if (options.agent) {
+      await runAgentMode(input);
+    } else {
+      await processAiCommand(input);
+    }
   });
 
 // Parse arguments
