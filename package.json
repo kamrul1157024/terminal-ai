@@ -50,6 +50,8 @@
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "inquirer": "^12.5.0",
+    "marked": "^15.0.7",
+    "marked-terminal": "^7.3.0",
     "ollama": "^0.5.14",
     "openai": "^4.91.1",
     "tiktoken": "^1.0.20",
@@ -58,6 +60,7 @@
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
+    "@types/marked-terminal": "^6.1.1",
     "@types/yaml": "^1.9.7",
     "chokidar": "^4.0.3",
     "copyfiles": "^2.4.1",
