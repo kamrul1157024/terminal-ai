@@ -105,16 +105,31 @@ export async function processAiCommand(input: string, context?: string): Promise
  * @param command The command to execute
  */
 async function executeTerminalCommand(command: string): Promise<void> {
+  // Extract content from bash code block if present, handling both ```bash and ``` cases
+  const bashBlockRegex = /```(?:bash)?\s*([\s\S]*?)```/;
+  const match = command.match(bashBlockRegex);
+  
+  // If no code block found, do nothing
+  if (!match) {
+    return;
+  }
+  
+  // Extract command from the code block
+  const commandToExecute = match[1].trim();
+  
+  // If the extracted content is empty, exit early
+  if (!commandToExecute) {
+    logger.warn('No valid commands found in the code block');
+    return;
+  }
+  
   // Split commands by newlines and filter out empty lines
-  const commands = command.split('\n').map(cmd => cmd.trim()).filter(cmd => cmd);
+  const commands = commandToExecute.split('\n').map(cmd => cmd.trim()).filter(cmd => cmd);
 
   // If multiple commands, execute them sequentially
   if (commands.length > 1) {
     logger.info('Multiple commands detected. Executing sequentially...');
     for (const cmd of commands) {
-      // Skip if line is a code block marker
-      if (cmd.startsWith('```') || cmd.endsWith('```')) continue;
-      
       // Check if this is a log tailing command
       if (isLogTailingCommand(cmd)) {
         logger.info('Log tailing command detected. Starting stream:');
@@ -124,11 +139,10 @@ async function executeTerminalCommand(command: string): Promise<void> {
       
       await executeSingleCommand(cmd);
     }
-  } else {
-    // Single command - remove code block markers if present
-    const cleanCommand = command.replace(/```(bash)?\n?|```$/g, '').trim();
-    const shouldStream = isLogTailingCommand(cleanCommand);
-    await executeSingleCommand(cleanCommand, shouldStream);
+  } else if (commands.length === 1) {
+    // Single command
+    const shouldStream = isLogTailingCommand(commands[0]);
+    await executeSingleCommand(commands[0], shouldStream);
   }
 }
 
