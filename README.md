@@ -77,7 +77,7 @@ npx ai init
 
 This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai.yaml`.
 
-## Usage
+## Using the Command
 
 ### Basic Mode
 
@@ -140,6 +140,52 @@ ai -a "help me find large files on my system"
 ai -a "set up a basic Node.js project"
 ```
 
+### Advanced Usage
+
+#### Using with Pipes
+
+The AI CLI can process input from other commands via pipes:
+
+```bash
+# Process file contents
+cat config.json | ai "validate this JSON file"
+
+# Filter command output
+ps aux | ai "find all Node.js processes"
+
+# Analyze logs
+tail -n 100 server.log | ai "what errors occurred in the last 100 lines"
+```
+
+#### Environment Variables
+
+You can override configuration settings using environment variables:
+
+```bash
+# Set API key
+export AI_API_KEY=your_api_key
+ai "list files"
+
+# Change model
+export AI_MODEL=gpt-4
+ai "analyze this code"
+
+# Set provider
+export AI_PROVIDER=claude
+ai "help me with this task"
+```
+
+#### Configuration File
+
+The configuration is stored in `~/.terminal-ai.yaml`. You can manually edit this file to change settings:
+
+```yaml
+provider: openai
+apiKey: sk-...
+model: gpt-4
+apiEndpoint: https://api.openai.com/v1
+```
+
 ## Cost Tracking
 
 AI CLI includes built-in cost tracking for all API-based providers:
@@ -154,6 +200,51 @@ AI CLI includes built-in cost tracking for all API-based providers:
 - `yarn dev`: Run the application in development mode
 - `yarn build`: Build the application
 - `yarn start`: Run the built application
+
+## Contributing to the Project
+
+We welcome contributions to AI CLI! Here's how you can help:
+
+### Setting Up for Development
+
+1. Fork the repository
+2. Clone your fork: `git clone https://github.com/yourusername/ai.git`
+3. Install dependencies: `yarn install`
+4. Create a branch for your changes: `git checkout -b feature/your-feature-name`
+
+### Making Changes
+
+- Follow the existing code style and patterns
+- Add tests for new functionality
+- Update documentation as needed
+- Make sure all tests pass: `yarn test`
+- Build the project: `yarn build`
+
+### Submitting a Pull Request
+
+1. Push your changes to your fork: `git push origin feature/your-feature-name`
+2. Create a pull request from your fork to the main repository
+3. Provide a clear description of the changes and why they're needed
+4. Reference any related issues
+
+### Adding a New AI Provider
+
+To add support for a new AI provider:
+
+1. Create a new file in `src/llm/providers/` (e.g., `new-provider.ts`)
+2. Implement the `LLMProvider` interface
+3. Add the provider type to the `LLMProviderType` enum in `src/llm/index.ts`
+4. Update the `createLLMProvider` function to handle the new provider
+5. Add token counting support in `src/utils/token-counter.ts`
+6. Update documentation and tests
+
+### Code Style
+
+- Use TypeScript for all new code
+- Follow the existing code style
+- Use meaningful variable and function names
+- Add JSDoc comments for public functions and interfaces
+- Keep functions focused and small
 
 ## Continuous Integration
 
