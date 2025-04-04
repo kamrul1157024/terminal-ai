@@ -26,6 +26,32 @@ program
     await initCommand();
   });
 
+// Read from stdin if data is being piped
+async function readFromStdin(): Promise<string> {
+  return new Promise((resolve) => {
+    let data = '';
+    
+    // Check if stdin is available and has data being piped
+    if (process.stdin.isTTY) {
+      resolve('');
+      return;
+    }
+    
+    process.stdin.on('data', (chunk) => {
+      data += chunk;
+    });
+    
+    process.stdin.on('end', () => {
+      resolve(data);
+    });
+    
+    // Set encoding to utf8
+    process.stdin.setEncoding('utf8');
+    // Start reading
+    process.stdin.resume();
+  });
+}
+
 // Add the main command
 program
   .argument('<input>', 'The command to interpret')
@@ -37,10 +63,13 @@ program
       await initCommand();
     }
     
+    // Read piped content if any
+    const pipedContent = await readFromStdin();
+    
     if (options.agent) {
-      await runAgentMode(input);
+      await runAgentMode(input, pipedContent);
     } else {
-      await processAiCommand(input);
+      await processAiCommand(input, pipedContent);
     }
   });
 

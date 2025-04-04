@@ -12,14 +12,17 @@ import { logger } from '../utils/logger';
 
 // Default system prompt for basic mode
 const BASIC_SYSTEM_PROMPT = 
-  'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
-  'Respond with ONLY the terminal command, nothing else.';
+  `You are a helpful terminal assistant. Convert natural language requests into terminal commands. 
+  Respond with ONLY the terminal command, nothing else. And try to respond with single line commands.`;
 
 // System prompt when context is provided
 const CONTEXT_SYSTEM_PROMPT = 
-  'You are a helpful terminal assistant. Convert natural language requests into terminal commands. ' +
-  'Use the provided context to inform your command generation. ' +
-  'Respond with ONLY the terminal command, nothing else.';
+  `You are a helpful terminal assistant. Convert natural language requests into terminal commands. 
+  Use the provided context to inform your command generation. 
+  Respond with ONLY the terminal command, nothing else. And try to respond with single line commands.
+  if user asks question that is not related to terminal commands respond user question.
+  `;
+
 
 // Create a global cost tracker for the application
 export const costTracker = new CumulativeCostTracker();
@@ -106,7 +109,7 @@ export async function processAiCommand(input: string, context?: string): Promise
  */
 async function executeTerminalCommand(command: string): Promise<void> {
   // Extract content from bash code block if present, handling both ```bash and ``` cases
-  const bashBlockRegex = /```(?:bash)?\s*([\s\S]*?)```/;
+  const bashBlockRegex = /```(?:bash|sh)?\s*([\s\S]*?)```/;
   const match = command.match(bashBlockRegex);
   
   // If no code block found, do nothing
@@ -123,26 +126,64 @@ async function executeTerminalCommand(command: string): Promise<void> {
     return;
   }
   
-  // Split commands by newlines and filter out empty lines
-  const commands = commandToExecute.split('\n').map(cmd => cmd.trim()).filter(cmd => cmd);
-
-  // If multiple commands, execute them sequentially
-  if (commands.length > 1) {
-    logger.info('Multiple commands detected. Executing sequentially...');
-    for (const cmd of commands) {
-      // Check if this is a log tailing command
-      if (isLogTailingCommand(cmd)) {
-        logger.info('Log tailing command detected. Starting stream:');
-        await executeSingleCommand(cmd);
-        return; // Exit after starting the streaming command
-      }
+  // Split commands by newlines to check if it's multiline
+  const lines = commandToExecute.split('\n').map(line => line.trim()).filter(line => line);
+  
+  // Check for log tailing command first
+  const isLogCommand = lines.some(line => isLogTailingCommand(line));
+  if (isLogCommand) {
+    logger.info('Log tailing command detected. Starting stream:');
+    await execTerminalCommand(commandToExecute, false, true);
+    return;
+  }
+  
+  // If it's a multiline command, use eval to execute it
+  if (lines.length > 1) {
+    logger.info('Multiline command detected. Using eval for execution...');
+    
+    if (isSystemModifyingCommand(commandToExecute)) {
+      // Ask for confirmation first
+      logger.warn(`>>>> Multiline command may modify the system. Execute? y or n?`);
       
-      await executeSingleCommand(cmd);
+      const { confirm } = await inquirer.prompt<{ confirm: string }>([
+        {
+          type: 'input',
+          name: 'confirm',
+          message: '',
+        }
+      ]);
+      
+      if (confirm.toLowerCase() === 'y') {
+        // Use eval to execute the multiline command as a single unit
+        try {
+          await execTerminalCommand(`eval "${commandToExecute.replace(/"/g, '\\"')}"`, false, false);
+        } catch (error) {
+          // If command fails, try with sudo
+          const { sudoConfirm } = await inquirer.prompt<{ sudoConfirm: string }>([
+            {
+              type: 'input',
+              name: 'sudoConfirm',
+              message: 'Command failed. Retry with sudo? (y/n):',
+            }
+          ]);
+          
+          if (sudoConfirm.toLowerCase() === 'y') {
+            await execTerminalCommand(`sudo eval "${commandToExecute.replace(/"/g, '\\"')}"`, true, false);
+          }
+        }
+      }
+    } else {
+      // For non-system modifying multiline commands, execute without confirmation
+      logger.command('Executing multiline command with eval');
+      try {
+        await execTerminalCommand(`eval "${commandToExecute.replace(/"/g, '\\"')}"`, false, false);
+      } catch (error) {
+        logger.error('Command execution failed');
+      }
     }
-  } else if (commands.length === 1) {
-    // Single command
-    const shouldStream = isLogTailingCommand(commands[0]);
-    await executeSingleCommand(commands[0], shouldStream);
+  } else if (lines.length === 1) {
+    // For single-line commands, use the existing approach
+    await executeSingleCommand(lines[0]);
   }
 }
 
@@ -201,150 +242,3 @@ async function executeSingleCommand(command: string, stream: boolean = false): P
 
 // Re-export the agent mode function
 export { runAgentMode };
-
-/**
- * AI command for processing natural language commands
- */
-export function aiCommand(program: Command) {
-  program
-    .command('ai')
-    .description('AI-powered terminal command interpreter')
-    .argument('[input...]', 'Natural language command to execute')
-    .option('-a, --agent', 'Run in agent mode with continuous conversation')
-    .action(async (input: string[], options: { agent?: boolean }) => {
-      try {
-        // Read configuration
-        const config = readConfig();
-        
-        if (!config) {
-          logger.error('Configuration not found. Please run "ai init" first.');
-          process.exit(1);
-        }
-        
-        // Read from stdin if available
-        const context = await readFromStdin();
-        
-        // Create LLM provider
-        const llmProvider = createLLMProvider(config.provider, {
-          apiKey: config.apiKey,
-          model: config.model,
-          apiEndpoint: config.apiEndpoint
-        });
-        
-        // Create command processor with appropriate system prompt
-        const processor = new CommandProcessor(
-          llmProvider,
-          context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT
-        );
-        
-        // Check if we're in agent mode
-        if (options.agent) {
-          logger.info('Agent mode activated. Type "exit" or "quit" to end the session.');
-          
-          // If we have context, add it to the conversation history
-          if (context) {
-            conversationHistory.push({
-              role: MessageRole.USER,
-              content: `Context: ${context}`
-            });
-          }
-          
-          // If input was provided, process it first
-          if (input.length > 0) {
-            const initialInput = input.join(' ');
-            logger.userInput(initialInput);
-            
-            // Process with streaming output
-            logger.aiResponse('');
-            const command = await processor.processCommand(
-              initialInput,
-              (token: string) => process.stdout.write(token),
-              conversationHistory
-            );
-            
-            // Add to conversation history
-            conversationHistory.push(
-              { role: MessageRole.USER, content: initialInput },
-              { role: MessageRole.ASSISTANT, content: command }
-            );
-            
-            logger.command(command);
-          }
-          
-          // Start interactive loop
-          const readline = require('readline').createInterface({
-            input: process.stdin,
-            output: process.stdout
-          });
-          
-          const askQuestion = () => {
-            readline.question('\n', async (userInput: string) => {
-              if (userInput.toLowerCase() === 'exit' || userInput.toLowerCase() === 'quit') {
-                logger.info('Ending agent session.');
-                readline.close();
-                return;
-              }
-              
-              logger.userInput(userInput);
-              
-              // Process with streaming output
-              logger.aiResponse('');
-              const command = await processor.processCommand(
-                userInput,
-                (token: string) => process.stdout.write(token),
-                conversationHistory
-              );
-              
-              // Add to conversation history
-              conversationHistory.push(
-                { role: MessageRole.USER, content: userInput },
-                { role: MessageRole.ASSISTANT, content: command }
-              );
-              
-              logger.command(command);
-              
-              // Continue the loop
-              askQuestion();
-            });
-          };
-          
-          askQuestion();
-        } else {
-          // Single command mode
-          if (input.length === 0) {
-            logger.error('Please provide a command to execute.');
-            process.exit(1);
-          }
-          
-          const userInput = input.join(' ');
-          logger.userInput(userInput);
-          
-          // Initialize history with context if available
-          const history: Message[] = [];
-          if (context) {
-            history.push({
-              role: MessageRole.USER,
-              content: `Context: ${context}`
-            });
-          }
-          
-          // Process with streaming output
-          logger.aiResponse('');
-          const command = await processor.processCommand(
-            userInput,
-            (token: string) => process.stdout.write(token),
-            history
-          );
-          
-          logger.command(command);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          logger.error(`Error: ${error.message}`);
-        } else {
-          logger.error(`Error: ${String(error)}`);
-        }
-        process.exit(1);
-      }
-    });
-} 

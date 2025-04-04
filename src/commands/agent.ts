@@ -24,8 +24,9 @@ const AGENT_SYSTEM_PROMPT =
 /**
  * Run in agent mode with continuous conversation
  * @param initialInput Initial user input to start the conversation
+ * @param context Optional additional context (e.g., from piped input)
  */
-export async function runAgentMode(initialInput: string): Promise<void> {
+export async function runAgentMode(initialInput: string, context?: string): Promise<void> {
   try {
     logger.info('Starting agent mode...');
     logger.info(`Initial query: "${initialInput}"`);
@@ -43,6 +44,12 @@ export async function runAgentMode(initialInput: string): Promise<void> {
     // Initialize conversation history
     let conversationHistory: Message[] = [];
     let userInput = initialInput;
+    
+    // Add context to initial input if provided
+    if (context && context.trim()) {
+      userInput = `${userInput}\n\nAdditional context from piped input:\n${context}`;
+      logger.info('Including piped content as additional context');
+    }
     
     // Agent conversation loop
     while (userInput.toLowerCase() !== 'exit' && userInput.toLowerCase() !== 'quit') {
