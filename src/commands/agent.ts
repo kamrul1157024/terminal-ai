@@ -20,29 +20,40 @@ const AGENT_SYSTEM_PROMPT = `You are a helpful terminal agent. Help the user acc
   Keep responses concise and focused on the user's goal.`;
 const EXIT_COMMANDS = ["\exit", "\quit", "\q"];
 const PROMPT_SYMBOL = ">>";
-const EMPTY_INPUT_MESSAGE = "Please enter a command or question. Type \\exit, \\quit, or \\q to exit.";
+const EMPTY_INPUT_MESSAGE =
+  "Please enter a command or question. Type \\exit, \\quit, or \\q to exit.";
 const EXIT_MESSAGE = "Exiting agent mode";
 
 /**
  * Process user input and check for special commands
  * @returns true if the loop should continue, false if it should exit
  */
-function processUserInput(input: string): { shouldContinue: boolean; processInput: boolean; input: string } {
-  const trimmedInput = input.trim();
-  
-  // Check for exit commands
+async function processUserInput(): Promise<{
+  shouldContinue: boolean;
+  input: string;
+}> {
+  const response = await inquirer.prompt([
+    {
+      type: "input",
+      name: "userInput",
+      message: PROMPT_SYMBOL,
+      default: "",
+    },
+  ]);
+
+  const trimmedInput = response.userInput.trim();
+
   if (EXIT_COMMANDS.includes(trimmedInput)) {
     logger.info(EXIT_MESSAGE);
-    return { shouldContinue: false, processInput: false, input: trimmedInput };
+    return { shouldContinue: false, input: trimmedInput };
   }
-  
-  // Check for empty input
+
   if (!trimmedInput) {
     console.log(EMPTY_INPUT_MESSAGE);
-    return { shouldContinue: true, processInput: false, input: trimmedInput };
+    return processUserInput();
   }
-  
-  return { shouldContinue: true, processInput: true, input: trimmedInput };
+
+  return { shouldContinue: true, input: trimmedInput };
 }
 
 export async function runAgentMode({
@@ -91,32 +102,20 @@ export async function runAgentMode({
         onToken: (token: string) => process.stdout.write(token),
         conversationHistory,
       });
-      
+
       // Get next user input if the last message was from the assistant
-      if (conversationHistory[conversationHistory.length - 1].role === "assistant") {
-        const response = await inquirer.prompt([
-          {
-            type: "input",
-            name: "userInput",
-            message: PROMPT_SYMBOL,
-            default: "",
-          },
-        ]);
-        
-        const { shouldContinue, processInput, input } = processUserInput(response.userInput);
-        
+      if (
+        conversationHistory[conversationHistory.length - 1].role === "assistant"
+      ) {
+        const { shouldContinue, input } = await processUserInput();
         if (!shouldContinue) {
           break;
         }
-        
-        if (!processInput) {
-          continue;
-        }
-        
+
         userInput = input;
       }
     }
-    
+
     costTracker.displayTotalCost();
   } catch (error: unknown) {
     if (error instanceof Error) {
