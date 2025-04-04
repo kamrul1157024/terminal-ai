@@ -37,11 +37,15 @@ export class CommandProcessor {
     this.functionCallProcessor = functionCallProcessor;
   }
 
-  async processCommand(
-    input: string,
-    onToken: (token: string) => void = (token) => process.stdout.write(token),
-    conversationHistory: Message<MessageRole>[] = [],
-  ): Promise<Message<MessageRole>[]> {
+  async processCommand({
+    input,
+    onToken,
+    conversationHistory,
+  }: {
+    input: string;
+    onToken: (token: string) => void;
+    conversationHistory: Message<MessageRole>[];
+  }): Promise<Message<MessageRole>[]> {
     const history = [...conversationHistory];
 
     const messages: Message<MessageRole>[] = [

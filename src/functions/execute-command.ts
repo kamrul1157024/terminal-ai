@@ -4,6 +4,7 @@ import { promisify } from "util";
 import inquirer from "inquirer";
 import { logger } from "../utils/logger";
 import { isSystemQueryingCommand } from "../utils";
+import { getAutopilot } from "../utils/context-vars";
 
 const execPromise = promisify(exec);
 
@@ -52,7 +53,7 @@ export const executeCommandHandler = async (args: {
 
   logger.command(requiresSudo ? `sudo ${command}` : command);
 
-  if (!isSystemQueryingCommand(command)) {
+  if (!isSystemQueryingCommand(command) && !getAutopilot()) {
     const { confirm } = await inquirer.prompt([
       {
         type: "confirm",

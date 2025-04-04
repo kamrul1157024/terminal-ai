@@ -56,11 +56,11 @@ export async function processAiCommand(
       });
     }
 
-    await commandProcessor.processCommand(
+    await commandProcessor.processCommand({
       input,
-      (token: string) => process.stdout.write(token),
-      history,
-    );
+      onToken: (token: string) => process.stdout.write(token),
+      conversationHistory: history,
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error(`Error: ${error.message}`);

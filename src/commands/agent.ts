@@ -17,10 +17,13 @@ const AGENT_SYSTEM_PROMPT = `You are a helpful terminal agent. Help the user acc
   if user have any queries and commans try to figureout the best way to do it and use the execute_command function to run commands
   Keep responses concise and focused on the user's goal.`;
 
-export async function runAgentMode(
-  initialInput: string,
-  context?: string,
-): Promise<void> {
+export async function runAgentMode({
+  input,
+  context,
+}: {
+  input: string;
+  context?: string;
+}): Promise<void> {
   try {
     const functionCallProcessor = new FunctionCallProcessor();
     functionCallProcessor.registerFunction(
@@ -41,7 +44,7 @@ export async function runAgentMode(
     });
 
     let conversationHistory: Message<MessageRole>[] = [];
-    let userInput = initialInput;
+    let userInput = input;
 
     if (context && context.trim()) {
       userInput = `${userInput}\n\nAdditional context from piped input:\n${context}`;
@@ -54,11 +57,11 @@ export async function runAgentMode(
     });
 
     while (true) {
-      conversationHistory = await commandProcessor.processCommand(
-        userInput,
-        (token: string) => process.stdout.write(token),
+      conversationHistory = await commandProcessor.processCommand({
+        input: userInput,
+        onToken: (token: string) => process.stdout.write(token),
         conversationHistory,
-      );
+      });
       if (
         conversationHistory[conversationHistory.length - 1].role === "assistant"
       ) {
