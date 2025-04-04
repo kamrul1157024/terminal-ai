@@ -132,8 +132,9 @@ export class OpenAIProvider implements LLMProvider {
       } satisfies OpenAI.ChatCompletionCreateParamsStreaming;
 
       let fullContent = "";
-      const functionCalls: FunctionCallResult[] = [];
       const stream = await this.client.chat.completions.create(requestParams);
+
+      const toolCallMap: Record<string, any> = {};
 
       for await (const chunk of stream as any) {
         const content = chunk.choices[0]?.delta?.content || "";
@@ -145,14 +146,22 @@ export class OpenAIProvider implements LLMProvider {
 
         const toolCalls = chunk.choices[0]?.delta?.tool_calls;
         if (toolCalls && toolCalls.length > 0) {
-          functionCalls.push(
-            ...toolCalls
-              .filter((toolCall: any) => toolCall.function.name)
-              .map(this.mapOpenAIToolsCallTOGenericFunctionCall),
-          );
+          toolCalls.forEach((toolCall: any) => {
+            if (toolCall.function.name) {
+              toolCallMap[toolCall.index] = toolCall;
+            } else {
+              toolCallMap[toolCall.index].function.arguments +=
+                toolCall.function.arguments;
+            }
+          });
         }
       }
 
+      const functionCalls = Object.values(toolCallMap).map(
+        this.mapOpenAIToolsCallTOGenericFunctionCall,
+      );
+      console.log("toolCallMap", toolCallMap);
+      console.log("functionCalls", functionCalls);
       const result: CompletionResult = { content: fullContent };
 
       if (functionCalls.length > 0) {

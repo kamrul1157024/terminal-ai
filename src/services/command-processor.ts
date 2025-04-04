@@ -41,7 +41,7 @@ export class CommandProcessor {
     input: string,
     onToken: (token: string) => void = (token) => process.stdout.write(token),
     conversationHistory: Message<MessageRole>[] = [],
-  ): Promise<string> {
+  ): Promise<Message<MessageRole>[]> {
     const history = [...conversationHistory];
 
     const messages: Message<MessageRole>[] = [
@@ -89,22 +89,13 @@ export class CommandProcessor {
           callId: result.callId,
         })),
       });
-
-      const finalCompletion =
-        await this.llmProvider.generateStreamingCompletion(
-          [{ role: "system", content: this.systemPrompt }, ...history],
-          onToken,
-          { function_call: "none" }, // Don't call functions again
-        );
-
-      if (this.showCostInfo && finalCompletion.usage) {
-        displayCostInfo(finalCompletion.usage);
-      }
-
-      return finalCompletion.content;
+    } else {
+      history.push({
+        role: "assistant",
+        content: completion.content,
+      });
     }
-
-    return completion.content;
+    return history;
   }
 
   setCostInfoDisplay(enable: boolean): void {
