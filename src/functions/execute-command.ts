@@ -15,7 +15,8 @@ export const executeCommandFunction: FunctionDefinition = {
     properties: {
       command: {
         type: "string",
-        description: "The terminal command to execute",
+        description:
+          "The terminal command to execute with shell escape if multiple lines are provided",
       },
       requiresSudo: {
         type: "boolean",
