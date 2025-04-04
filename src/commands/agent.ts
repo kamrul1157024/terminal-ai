@@ -56,17 +56,20 @@ export async function runAgentMode(
       logger.info("Including piped content as additional context");
     }
 
+    conversationHistory.push({
+      role: "user",
+      content: userInput,
+    });
+
     while (true) {
-      conversationHistory.push({
-        role: "user",
-        content: userInput,
-      });
-      const history = await commandProcessor.processCommand(
+      conversationHistory = await commandProcessor.processCommand(
         userInput,
         (token: string) => process.stdout.write(token),
         conversationHistory,
       );
-      if (history[history.length - 1].role === "assistant") {
+      if (
+        conversationHistory[conversationHistory.length - 1].role === "assistant"
+      ) {
         break;
       }
     }
