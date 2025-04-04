@@ -1,5 +1,3 @@
-import inquirer from "inquirer";
-import { execTerminalCommand, isSystemModifyingCommand } from "../utils";
 import { createLLMProvider } from "../llm";
 import { CommandProcessor } from "../services";
 import {

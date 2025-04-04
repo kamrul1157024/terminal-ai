@@ -39,7 +39,12 @@ export class FunctionCallProcessor {
 
     try {
       const result = await handler(functionCall.arguments);
-      return { name: functionCall.name, result, callId: functionCall.callId };
+      return {
+        name: functionCall.name,
+        result:
+          typeof result === "object" ? JSON.stringify(result) : String(result),
+        callId: functionCall.callId,
+      };
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(

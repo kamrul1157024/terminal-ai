@@ -52,7 +52,7 @@ export type FunctionCallResult = {
   callId: string;
 };
 
-export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
+export type FunctionHandler = (args: any) => any;
 
 export type CompletionOptions = {
   functions?: FunctionDefinition[];
