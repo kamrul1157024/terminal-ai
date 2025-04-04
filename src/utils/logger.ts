@@ -135,7 +135,7 @@ export class Logger {
   // Special method for command execution
   command(command: string): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      let message = `Executing: ${command}`;
+      let message = `>> ${command}`;
 
       if (this.parseMarkdown) {
         message = `\`\`\`bash\n${command}\n\`\`\``;

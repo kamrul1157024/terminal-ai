@@ -13,8 +13,7 @@ import { CumulativeCostTracker } from "../utils/pricing-calculator";
 import { logger } from "../utils/logger";
 
 const costTracker = new CumulativeCostTracker();
-const AGENT_SYSTEM_PROMPT =
-  `You are a helpful terminal agent. Help the user accomplish their tasks by executing terminal commands.
+const AGENT_SYSTEM_PROMPT = `You are a helpful terminal agent. Help the user accomplish their tasks by executing terminal commands.
   if user have any queries and commans try to figureout the best way to do it and use the execute_command function to run commands
   Keep responses concise and focused on the user's goal.`;
 
