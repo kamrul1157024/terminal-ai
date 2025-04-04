@@ -17,7 +17,7 @@ export const executeCommandFunction: FunctionDefinition = {
       command: {
         type: "string",
         description:
-          "The terminal command to execute with shell escape if multiple lines are provided",
+          "The terminal command to execute with shell try to return in single line",
       },
       requiresSudo: {
         type: "boolean",
