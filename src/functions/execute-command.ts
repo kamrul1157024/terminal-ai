@@ -20,11 +20,6 @@ export const executeCommandFunction: FunctionDefinition = {
         type: "string",
         description: "The terminal command to execute",
       },
-      reasoning: {
-        type: "string",
-        description:
-          "Explanation of what this command will do and why it was chosen",
-      },
     },
     required: ["command", "reasoning"],
   },
@@ -39,10 +34,8 @@ export const executeCommandHandler = async (
   args: Record<string, any>,
 ): Promise<string> => {
   const command = args.command;
-  const reasoning = args.reasoning;
 
-  logger.info(`Recommended command: ${command}`);
-  logger.info(`Reasoning: ${reasoning}`);
+  logger.info(`>> ${command}`);
 
   if (isSystemModifyingCommand(command)) {
     // Ask for confirmation for potentially dangerous commands
