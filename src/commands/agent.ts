@@ -10,9 +10,9 @@ import {
   executeCommandHandler
 } from '../functions';
 import { CumulativeCostTracker } from '../utils/pricing-calculator';
-import { costTracker } from './ai';
 import { logger } from '../utils/logger';
 
+const costTracker = new CumulativeCostTracker();
 /**
  * Agent system prompt - instructs the LLM to act as a terminal assistant
  */

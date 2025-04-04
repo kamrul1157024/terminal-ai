@@ -56,6 +56,15 @@ export class CommandProcessor {
     this.functions.push(definition);
     this.functionHandlers.set(definition.name, handler);
   }
+
+  getFunctionCallArguments(functionCall: FunctionCallResult) {
+    if (typeof functionCall.arguments === 'string' && functionCall.arguments.trim() !== '') {
+      return JSON.parse(functionCall.arguments);
+    }
+    if (!functionCall.arguments) {
+      return {};
+    }
+  }
   
   /**
    * Handle a function call from the LLM
@@ -74,9 +83,7 @@ export class CommandProcessor {
     
     try {
       // Parse arguments if they're a string
-      const args = typeof functionCall.arguments === 'string' 
-        ? JSON.parse(functionCall.arguments)
-        : functionCall.arguments;
+      const args = this.getFunctionCallArguments(functionCall);
         
       const result = await handler(args);
       

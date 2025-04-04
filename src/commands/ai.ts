@@ -1,12 +1,9 @@
 import inquirer from 'inquirer';
 import { execTerminalCommand, isSystemModifyingCommand } from '../utils';
-import { createLLMProvider, LLMProviderType } from '../llm';
+import { createLLMProvider } from '../llm';
 import { CommandProcessor } from '../services';
 import { getSystemInfoFunction, getSystemInfoHandler } from '../functions';
-import { CumulativeCostTracker } from '../utils/pricing-calculator';
 import { runAgentMode } from './agent';
-import { Command } from 'commander';
-import { readConfig } from '../utils/config';
 import { Message, MessageRole } from '../llm/interface';
 import { logger } from '../utils/logger';
 
@@ -22,36 +19,6 @@ const CONTEXT_SYSTEM_PROMPT =
   Respond with ONLY the terminal command, nothing else. And try to respond with single line commands.
   if user asks question that is not related to terminal commands respond user question.
   `;
-
-
-// Create a global cost tracker for the application
-export const costTracker = new CumulativeCostTracker();
-
-// Store conversation history for agent mode
-let conversationHistory: Message[] = [];
-
-/**
- * Read data from stdin if available
- * @returns Promise that resolves with the stdin data or null if no data was piped
- */
-async function readFromStdin(): Promise<string | null> {
-  // Check if we're receiving piped input
-  if (!process.stdin.isTTY) {
-    return new Promise((resolve) => {
-      let data = '';
-      process.stdin.setEncoding('utf8');
-      
-      process.stdin.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      process.stdin.on('end', () => {
-        resolve(data.trim());
-      });
-    });
-  }
-  return null;
-}
 
 /**
  * Process an AI command in basic mode
