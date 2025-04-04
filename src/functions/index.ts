@@ -1,6 +1,9 @@
-import { FunctionDefinition, FunctionHandler } from '../llm/interface';
-import { getSystemInfoFunction, getSystemInfoHandler } from './system-info';
-import { executeCommandFunction, executeCommandHandler } from './execute-command';
+import { FunctionDefinition, FunctionHandler } from "../llm/interface";
+import { getSystemInfoFunction, getSystemInfoHandler } from "./system-info";
+import {
+  executeCommandFunction,
+  executeCommandHandler,
+} from "./execute-command";
 
 /**
  * All available functions with their handlers
@@ -16,19 +19,19 @@ export interface FunctionMap {
 export const availableFunctions: Record<string, FunctionMap> = {
   getSystemInfo: {
     definition: getSystemInfoFunction,
-    handler: getSystemInfoHandler
+    handler: getSystemInfoHandler,
   },
   executeCommand: {
     definition: executeCommandFunction,
-    handler: executeCommandHandler
-  }
+    handler: executeCommandHandler,
+  },
 };
 
 /**
  * Get all function definitions
  */
 export function getAllFunctionDefinitions(): FunctionDefinition[] {
-  return Object.values(availableFunctions).map(f => f.definition);
+  return Object.values(availableFunctions).map((f) => f.definition);
 }
 
 /**
@@ -36,11 +39,14 @@ export function getAllFunctionDefinitions(): FunctionDefinition[] {
  */
 export function getFunctionHandler(name: string): FunctionHandler | undefined {
   const funcEntry = Object.values(availableFunctions).find(
-    f => f.definition.name === name
+    (f) => f.definition.name === name,
   );
   return funcEntry?.handler;
 }
 
 // Re-export all functions
-export { getSystemInfoFunction, getSystemInfoHandler } from './system-info';
-export { executeCommandFunction, executeCommandHandler } from './execute-command'; 
+export { getSystemInfoFunction, getSystemInfoHandler } from "./system-info";
+export {
+  executeCommandFunction,
+  executeCommandHandler,
+} from "./execute-command";

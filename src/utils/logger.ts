@@ -1,18 +1,18 @@
-import chalk from 'chalk';
+import chalk from "chalk";
 // Use the CommonJS require syntax to avoid TypeScript issues
-import { marked } from 'marked';
-import {markedTerminal} from 'marked-terminal';
+import { marked } from "marked";
+import { markedTerminal } from "marked-terminal";
 
 // Configure marked with the terminal renderer
 // @ts-expect-error marked-terminal is not typed
 marked.use(markedTerminal());
 
 export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR',
-  SUCCESS = 'SUCCESS'
+  DEBUG = "DEBUG",
+  INFO = "INFO",
+  WARN = "WARN",
+  ERROR = "ERROR",
+  SUCCESS = "SUCCESS",
 }
 
 export interface LoggerOptions {
@@ -34,36 +34,39 @@ export class Logger {
 
   constructor(options: LoggerOptions = {}) {
     this.level = options.level || LogLevel.INFO;
-    this.prefix = options.prefix || '';
-    this.timestamp = options.timestamp !== undefined ? options.timestamp : false;
+    this.prefix = options.prefix || "";
+    this.timestamp =
+      options.timestamp !== undefined ? options.timestamp : false;
     this.colors = options.colors !== undefined ? options.colors : true;
-    this.showLogLevel = options.showLogLevel !== undefined ? options.showLogLevel : false;
-    this.parseMarkdown = options.parseMarkdown !== undefined ? options.parseMarkdown : false;
+    this.showLogLevel =
+      options.showLogLevel !== undefined ? options.showLogLevel : false;
+    this.parseMarkdown =
+      options.parseMarkdown !== undefined ? options.parseMarkdown : false;
   }
 
   private formatMessage(level: LogLevel, message: string): string {
-    let formattedMessage = '';
-    
+    let formattedMessage = "";
+
     // Add timestamp if enabled
     if (this.timestamp) {
       const now = new Date();
       const timestamp = now.toISOString();
       formattedMessage += `[${timestamp}] `;
     }
-    
+
     // Add prefix if set
     if (this.prefix) {
       formattedMessage += `[${this.prefix}] `;
     }
-    
+
     // Add log level if enabled
     if (this.showLogLevel) {
       formattedMessage += `[${level}] `;
     }
-    
+
     // Add the actual message
     formattedMessage += message;
-    
+
     return formattedMessage;
   }
 
@@ -133,7 +136,7 @@ export class Logger {
   command(command: string): void {
     if (this.shouldLog(LogLevel.INFO)) {
       let message = `Executing: ${command}`;
-      
+
       if (this.parseMarkdown) {
         message = `\`\`\`bash\n${command}\n\`\`\``;
         // Parse markdown for command
@@ -152,7 +155,10 @@ export class Logger {
   // Special method for user input
   userInput(input: string): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      const formattedMessage = this.formatMessage(LogLevel.INFO, `You: ${input}`);
+      const formattedMessage = this.formatMessage(
+        LogLevel.INFO,
+        `You: ${input}`,
+      );
       if (this.colors) {
         console.log(chalk.green(formattedMessage));
       } else {
@@ -168,7 +174,10 @@ export class Logger {
         // Parse markdown for AI responses
         console.log(marked(response));
       } else {
-        const formattedMessage = this.formatMessage(LogLevel.INFO, `AI: ${response}`);
+        const formattedMessage = this.formatMessage(
+          LogLevel.INFO,
+          `AI: ${response}`,
+        );
         if (this.colors) {
           console.log(chalk.yellow(formattedMessage));
         } else {
@@ -185,4 +194,4 @@ export const logger = new Logger();
 // Export a function to create a new logger with custom options
 export function createLogger(options: LoggerOptions): Logger {
   return new Logger(options);
-} 
+}

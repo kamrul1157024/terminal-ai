@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import { processAiCommand, runAgentMode } from './commands/ai';
-import { initCommand } from './commands/init';
-import { configExists } from './utils/config';
-import { logger } from './utils/logger';
-import './utils/model-config'; // Ensure model config is loaded
+import { Command } from "commander";
+import { processAiCommand, runAgentMode } from "./commands/ai";
+import { initCommand } from "./commands/init";
+import { configExists } from "./utils/config";
+import { logger } from "./utils/logger";
+import "./utils/model-config"; // Ensure model config is loaded
 
 // Package version from package.json
-const packageJson = require('../package.json');
+const packageJson = require("../package.json");
 
 // Create a new command instance
 const program = new Command();
 
 program
-  .name('ai')
-  .description('AI-powered terminal command interpreter')
+  .name("ai")
+  .description("AI-powered terminal command interpreter")
   .version(packageJson.version);
 
 // Add init command
 program
-  .command('init')
-  .description('Initialize and configure Terminal AI')
+  .command("init")
+  .description("Initialize and configure Terminal AI")
   .action(async () => {
     await initCommand();
   });
@@ -29,24 +29,24 @@ program
 // Read from stdin if data is being piped
 async function readFromStdin(): Promise<string> {
   return new Promise((resolve) => {
-    let data = '';
-    
+    let data = "";
+
     // Check if stdin is available and has data being piped
     if (process.stdin.isTTY) {
-      resolve('');
+      resolve("");
       return;
     }
-    
-    process.stdin.on('data', (chunk) => {
+
+    process.stdin.on("data", (chunk) => {
       data += chunk;
     });
-    
-    process.stdin.on('end', () => {
+
+    process.stdin.on("end", () => {
       resolve(data);
     });
-    
+
     // Set encoding to utf8
-    process.stdin.setEncoding('utf8');
+    process.stdin.setEncoding("utf8");
     // Start reading
     process.stdin.resume();
   });
@@ -54,18 +54,18 @@ async function readFromStdin(): Promise<string> {
 
 // Add the main command
 program
-  .argument('<input>', 'The command to interpret')
-  .option('-a, --agent', 'Run in agent mode with continuous conversation')
+  .argument("<input>", "The command to interpret")
+  .option("-a, --agent", "Run in agent mode with continuous conversation")
   .action(async (input: string, options) => {
     // Check if config exists
     if (!configExists()) {
-      logger.info('Terminal AI is not configured. Running setup wizard...');
+      logger.info("Terminal AI is not configured. Running setup wizard...");
       await initCommand();
     }
-    
+
     // Read piped content if any
     const pipedContent = await readFromStdin();
-    
+
     if (options.agent) {
       await runAgentMode(input, pipedContent);
     } else {
@@ -79,4 +79,4 @@ program.parse(process.argv);
 // If no command is provided, show help
 if (!process.argv.slice(2).length) {
   program.outputHelp();
-} 
+}

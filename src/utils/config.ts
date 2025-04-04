@@ -1,9 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import YAML from 'yaml';
-import { LLMProviderType } from '../llm';
-import { logger } from './logger';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import YAML from "yaml";
+import { LLMProviderType } from "../llm";
+import { logger } from "./logger";
 
 /**
  * Configuration interface for Terminal AI
@@ -16,7 +16,7 @@ export interface TerminalAIConfig {
 }
 
 // Default configuration path
-const CONFIG_PATH = path.join(os.homedir(), '.terminal-ai.yaml');
+const CONFIG_PATH = path.join(os.homedir(), ".terminal-ai.yaml");
 
 /**
  * Read configuration from ~/.terminal-ai.yaml
@@ -27,12 +27,12 @@ export function readConfig(): TerminalAIConfig | null {
     if (!fs.existsSync(CONFIG_PATH)) {
       return null;
     }
-    
-    const fileContent = fs.readFileSync(CONFIG_PATH, 'utf8');
+
+    const fileContent = fs.readFileSync(CONFIG_PATH, "utf8");
     const config = YAML.parse(fileContent) as TerminalAIConfig;
     return config;
   } catch (error) {
-    console.error('Error reading config file:', error);
+    console.error("Error reading config file:", error);
     return null;
   }
 }
@@ -45,7 +45,7 @@ export function readConfig(): TerminalAIConfig | null {
 export function writeConfig(config: TerminalAIConfig): boolean {
   try {
     const yamlString = YAML.stringify(config);
-    fs.writeFileSync(CONFIG_PATH, yamlString, 'utf8');
+    fs.writeFileSync(CONFIG_PATH, yamlString, "utf8");
     return true;
   } catch (error) {
     logger.error(`Error writing config file: ${error}`);
@@ -59,4 +59,4 @@ export function writeConfig(config: TerminalAIConfig): boolean {
  */
 export function configExists(): boolean {
   return fs.existsSync(CONFIG_PATH);
-} 
+}

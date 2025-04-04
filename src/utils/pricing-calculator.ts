@@ -1,6 +1,6 @@
-import { TokenUsage } from '../llm/interface';
-import { calculateCost } from './model-config';
-import chalk from 'chalk';
+import { TokenUsage } from "../llm/interface";
+import { calculateCost } from "./model-config";
+import chalk from "chalk";
 
 /**
  * Format a cost amount in USD
@@ -9,7 +9,7 @@ import chalk from 'chalk';
  */
 function formatCost(cost: number): string {
   // Format to max 6 decimal places, but only show necessary decimal places
-  return '$' + cost.toFixed(6).replace(/\.?0+$/, '');
+  return "$" + cost.toFixed(6).replace(/\.?0+$/, "");
 }
 
 /**
@@ -18,24 +18,22 @@ function formatCost(cost: number): string {
  */
 export function displayCostInfo(usage: TokenUsage): void {
   if (!usage) return;
-  
-  const cost = calculateCost(usage.model, usage.inputTokens, usage.outputTokens);
-  
+
+  const cost = calculateCost(
+    usage.model,
+    usage.inputTokens,
+    usage.outputTokens,
+  );
+
+  console.log(chalk.cyan("\n💰 Usage for this request:"));
+  console.log(chalk.gray(`  Model: ${usage.model}`));
   console.log(
-    chalk.cyan('\n💰 Usage for this request:')
+    chalk.gray(`  Input tokens: ${usage.inputTokens.toLocaleString()}`),
   );
   console.log(
-    chalk.gray(`  Model: ${usage.model}`)
+    chalk.gray(`  Output tokens: ${usage.outputTokens.toLocaleString()}`),
   );
-  console.log(
-    chalk.gray(`  Input tokens: ${usage.inputTokens.toLocaleString()}`)
-  );
-  console.log(
-    chalk.gray(`  Output tokens: ${usage.outputTokens.toLocaleString()}`)
-  );
-  console.log(
-    chalk.gray(`  Total cost: ${formatCost(cost)}`)
-  );
+  console.log(chalk.gray(`  Total cost: ${formatCost(cost)}`));
 }
 
 /**
@@ -46,43 +44,45 @@ export class CumulativeCostTracker {
   private totalInputTokens: number = 0;
   private totalOutputTokens: number = 0;
   private requests: number = 0;
-  
+
   /**
    * Add usage from a request to the tracker
    * @param usage Token usage from a request
    */
   addUsage(usage: TokenUsage): void {
     if (!usage) return;
-    
+
     this.totalInputTokens += usage.inputTokens;
     this.totalOutputTokens += usage.outputTokens;
-    this.totalCost += calculateCost(usage.model, usage.inputTokens, usage.outputTokens);
+    this.totalCost += calculateCost(
+      usage.model,
+      usage.inputTokens,
+      usage.outputTokens,
+    );
     this.requests++;
   }
-  
+
   /**
    * Display cumulative cost information
    */
   displayTotalCost(): void {
     if (this.requests === 0) return;
-    
+
+    console.log(chalk.cyan("\n💰 Total usage for this session:"));
+    console.log(chalk.gray(`  Requests: ${this.requests}`));
     console.log(
-      chalk.cyan('\n💰 Total usage for this session:')
+      chalk.gray(
+        `  Total input tokens: ${this.totalInputTokens.toLocaleString()}`,
+      ),
     );
     console.log(
-      chalk.gray(`  Requests: ${this.requests}`)
+      chalk.gray(
+        `  Total output tokens: ${this.totalOutputTokens.toLocaleString()}`,
+      ),
     );
-    console.log(
-      chalk.gray(`  Total input tokens: ${this.totalInputTokens.toLocaleString()}`)
-    );
-    console.log(
-      chalk.gray(`  Total output tokens: ${this.totalOutputTokens.toLocaleString()}`)
-    );
-    console.log(
-      chalk.gray(`  Total cost: ${formatCost(this.totalCost)}`)
-    );
+    console.log(chalk.gray(`  Total cost: ${formatCost(this.totalCost)}`));
   }
-  
+
   /**
    * Reset the cumulative tracker
    */
@@ -92,4 +92,4 @@ export class CumulativeCostTracker {
     this.totalOutputTokens = 0;
     this.requests = 0;
   }
-} 
+}

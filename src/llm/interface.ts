@@ -1,127 +1,89 @@
-/**
- * Message role types
- */
-export enum MessageRole {
-  SYSTEM = 'system',
-  USER = 'user',
-  ASSISTANT = 'assistant',
-  FUNCTION = 'function'
-}
+export type MessageRole =
+  | "system"
+  | "user"
+  | "assistant"
+  | "function"
+  | "function_call";
 
-/**
- * Message structure for LLM interactions
- */
-export interface Message {
-  role: MessageRole;
-  content: string;
-  name?: string; // Function name for function messages
-}
+export type FunctionCallResponse = {
+  name: string;
+  result: string;
+  error?: string;
+  callId: string;
+};
 
-/**
- * Function parameter for function definitions
- */
-export interface FunctionParameter {
+export type Message<T extends MessageRole> = T extends "function"
+  ? {
+      role: T;
+      content: FunctionCallResponse[];
+    }
+  : T extends "function_call"
+    ? {
+        role: T;
+        content: FunctionCallResult[];
+      }
+    : {
+        role: T;
+        content: string;
+      };
+
+export type FunctionParameter = {
   type: string;
   description?: string;
   enum?: string[];
   items?: {
     type: string;
   };
-}
+};
 
-/**
- * Function definition for LLM function calls
- */
-export interface FunctionDefinition {
+export type FunctionDefinition = {
   name: string;
   description: string;
   parameters: {
-    type: 'object';
+    type: "object";
     properties: Record<string, FunctionParameter>;
     required?: string[];
   };
-}
+};
 
-/**
- * Function call result
- */
-export interface FunctionCallResult {
+export type FunctionCallResult = {
   name: string;
-  arguments: Record<string, any> | string;
-}
+  arguments: Record<string, any>;
+  callId: string;
+};
 
-/**
- * Function handler type for implementing function calls
- */
 export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
 
-/**
- * Completion options
- */
-export interface CompletionOptions {
+export type CompletionOptions = {
   functions?: FunctionDefinition[];
-  function_call?: 'auto' | 'none' | { name: string };
-}
+  function_call?: "auto" | "none" | { name: string };
+};
 
-/**
- * Token usage tracking information
- */
-export interface TokenUsage {
+export type TokenUsage = {
   inputTokens: number;
   outputTokens: number;
   model: string;
-}
+};
 
-/**
- * Completion result with potential function call and token usage
- */
-export interface CompletionResult {
+export type CompletionResult = {
   content: string;
-  functionCall?: FunctionCallResult;
+  functionCalls?: FunctionCallResult[];
   usage?: TokenUsage;
-}
+};
 
-/**
- * Interface for language model providers
- */
-export interface LLMProvider {
-  /**
-   * Generate a completion based on messages
-   * @param messages Array of messages to process
-   * @param options Additional options like function definitions
-   * @returns The model's response text and optional function call
-   */
-  generateCompletion(
-    messages: Message[], 
-    options?: CompletionOptions
-  ): Promise<CompletionResult>;
-  
-  /**
-   * Generate a streaming completion based on messages
-   * @param messages Array of messages to process
-   * @param options Additional options like function definitions
-   * @param onToken Callback function for each token received
-   * @returns The complete model's response text and optional function call
-   */
+export type LLMProvider = {
   generateStreamingCompletion(
-    messages: Message[], 
+    messages: Message<MessageRole>[],
     onToken: (token: string) => void,
-    options?: CompletionOptions
+    options?: CompletionOptions,
   ): Promise<CompletionResult>;
-  
-  /**
-   * Get the current model being used by the provider
-   * @returns The model ID/name
-   */
-  getModel(): string;
-}
 
-/**
- * LLM provider configuration options
- */
-export interface LLMProviderConfig {
+  getModel(): string;
+};
+
+export type LLMProviderConfig = {
   apiKey?: string;
   model?: string;
   apiEndpoint?: string;
   [key: string]: any;
-} 
+};

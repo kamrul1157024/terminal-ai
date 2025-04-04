@@ -1,1 +1,1 @@
-export { CommandProcessor, FunctionHandler } from './command-processor'; 
+export { CommandProcessor, FunctionHandler } from "./command-processor";

@@ -1,5 +1,5 @@
-import { LLMProviderType } from '../llm';
-import { encoding_for_model, get_encoding, type TiktokenModel } from 'tiktoken';
+import { LLMProviderType } from "../llm";
+import { encoding_for_model, get_encoding, type TiktokenModel } from "tiktoken";
 
 /**
  * Get the appropriate tiktoken encoding for a model
@@ -9,23 +9,47 @@ import { encoding_for_model, get_encoding, type TiktokenModel } from 'tiktoken';
 function getEncodingForModel(model: string): any {
   try {
     // For models explicitly supported by tiktoken
-    if (['gpt-4', 'gpt-4-0314', 'gpt-4-32k', 'gpt-4-32k-0314', 'gpt-3.5-turbo', 'gpt-3.5-turbo-0301', 'text-davinci-003', 'text-davinci-002', 'text-davinci-001', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'davinci', 'curie', 'babbage', 'ada', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo-16k'].includes(model)) {
+    if (
+      [
+        "gpt-4",
+        "gpt-4-0314",
+        "gpt-4-32k",
+        "gpt-4-32k-0314",
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0301",
+        "text-davinci-003",
+        "text-davinci-002",
+        "text-davinci-001",
+        "text-curie-001",
+        "text-babbage-001",
+        "text-ada-001",
+        "davinci",
+        "curie",
+        "babbage",
+        "ada",
+        "gpt-4o",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo-16k",
+      ].includes(model)
+    ) {
       return encoding_for_model(model as TiktokenModel);
     }
-    
+
     // Use appropriate base encoding based on model name patterns
-    if (model.includes('gpt-4')) {
-      return encoding_for_model('gpt-4' as TiktokenModel);
-    } else if (model.includes('gpt-3.5')) {
-      return encoding_for_model('gpt-3.5-turbo' as TiktokenModel);
+    if (model.includes("gpt-4")) {
+      return encoding_for_model("gpt-4" as TiktokenModel);
+    } else if (model.includes("gpt-3.5")) {
+      return encoding_for_model("gpt-3.5-turbo" as TiktokenModel);
     } else {
       // For other models, use cl100k_base (most modern encoding)
-      return get_encoding('cl100k_base');
+      return get_encoding("cl100k_base");
     }
   } catch (error) {
-    console.warn(`Tiktoken encoding not available for model ${model}, using cl100k_base`);
+    console.warn(
+      `Tiktoken encoding not available for model ${model}, using cl100k_base`,
+    );
     // Default fallback
-    return get_encoding('cl100k_base');
+    return get_encoding("cl100k_base");
   }
 }
 
@@ -37,7 +61,7 @@ function getEncodingForModel(model: string): any {
  */
 export function countTokens(text: string, model: string): number {
   if (!text) return 0;
-  
+
   try {
     const enc = getEncodingForModel(model);
     const tokens = enc.encode(text);
@@ -68,9 +92,13 @@ export function estimateTokenCount(text: string): number {
  * @param model Model name
  * @returns Token count
  */
-export function countPromptTokens(text: string, provider: LLMProviderType, model: string): number {
+export function countPromptTokens(
+  text: string,
+  provider: LLMProviderType,
+  model: string,
+): number {
   if (!text) return 0;
-  
+
   // Use tiktoken for accurate counting
   return countTokens(text, model);
 }
@@ -113,7 +141,7 @@ export class TokenUsageTracker {
     return {
       inputTokens: this.inputTokens,
       outputTokens: this.outputTokens,
-      model: this.model
+      model: this.model,
     };
   }
 
@@ -124,4 +152,4 @@ export class TokenUsageTracker {
     this.inputTokens = 0;
     this.outputTokens = 0;
   }
-} 
+}
