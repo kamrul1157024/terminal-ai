@@ -35,8 +35,6 @@ export const executeCommandHandler = async (
 ): Promise<string> => {
   const command = args.command;
 
-  logger.info(`>> ${command}`);
-
   if (isSystemModifyingCommand(command)) {
     // Ask for confirmation for potentially dangerous commands
     const { confirm } = await inquirer.prompt([
@@ -54,7 +52,6 @@ export const executeCommandHandler = async (
   }
 
   try {
-    // Execute the command
     logger.command(command);
     const { stdout, stderr } = await execPromise(command);
 

@@ -14,22 +14,15 @@ import { logger } from "../utils/logger";
 
 const costTracker = new CumulativeCostTracker();
 const AGENT_SYSTEM_PROMPT =
-  "You are a helpful terminal agent. Help the user accomplish their tasks by executing terminal commands. " +
-  "When appropriate, use the execute_command function to run commands, providing clear reasoning for each command. " +
-  "Keep responses concise and focused on the user's goal.";
+  `You are a helpful terminal agent. Help the user accomplish their tasks by executing terminal commands.
+  if user have any queries and commans try to figureout the best way to do it and use the execute_command function to run commands
+  Keep responses concise and focused on the user's goal.`;
 
 export async function runAgentMode(
   initialInput: string,
   context?: string,
 ): Promise<void> {
   try {
-    logger.info("Starting agent mode...");
-    logger.info(`Initial query: "${initialInput}"`);
-    logger.info(
-      "The agent will suggest commands and execute them with your permission.",
-    );
-    logger.info('Type "exit" or "quit" to end the session.');
-
     const functionCallProcessor = new FunctionCallProcessor();
     functionCallProcessor.registerFunction(
       executeCommandFunction,

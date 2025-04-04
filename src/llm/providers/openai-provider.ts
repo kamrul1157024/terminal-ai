@@ -104,7 +104,6 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   mapOpenAIToolsCallTOGenericFunctionCall(toolCall: any): FunctionCallResult {
-    console.log("toolCall", toolCall);
     return {
       name: toolCall.function.name,
       arguments: toolCall.function.arguments
@@ -160,8 +159,6 @@ export class OpenAIProvider implements LLMProvider {
       const functionCalls = Object.values(toolCallMap).map(
         this.mapOpenAIToolsCallTOGenericFunctionCall,
       );
-      console.log("toolCallMap", toolCallMap);
-      console.log("functionCalls", functionCalls);
       const result: CompletionResult = { content: fullContent };
 
       if (functionCalls.length > 0) {
@@ -178,7 +175,6 @@ export class OpenAIProvider implements LLMProvider {
 
       return result;
     } catch (error) {
-      console.error("Error processing streaming with OpenAI:", error);
       throw new Error("Failed to generate streaming completion with OpenAI");
     }
   }
