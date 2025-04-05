@@ -1,0 +1,1 @@
+Fixed minor typo in commands directory and updated function signatures to use `initCommand` instead of `setupCommand`

@@ -8,8 +8,10 @@ import { CumulativeCostTracker } from "../services/pricing";
 import {
   runWithContext,
   setActiveProfile,
+  setAgentMode,
   setAutoApprove,
   setCostTracker,
+  setDebug,
   setShowCostInfo,
 } from "../utils/context-vars";
 
@@ -19,6 +21,7 @@ type ProcessAICommandOptions = {
   agent: boolean;
   thread: string;
   profile?: string;
+  debug?: boolean;
 };
 /**
  * Reads content from stdin if data is being piped
@@ -81,10 +84,9 @@ function setupContextVariables(options: ProcessAICommandOptions) {
   setAutoApprove(options.autoApprove);
   setCostTracker(new CumulativeCostTracker());
   setShowCostInfo(options.cost);
-
-  // Set the active profile based on options or configuration
+  setDebug(options.debug ?? false);
+  setAgentMode(options.agent);
   if (options.profile) {
-    // If a specific profile is requested, use that
     const config = Config.readConfig();
     if (config) {
       const requestedProfile = config.profiles.find(

@@ -3,6 +3,8 @@ import chalk from "chalk";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
 
+import { getDebug } from "./utils/context-vars";
+
 // Configure marked with the terminal renderer
 // @ts-expect-error marked-terminal is not typed
 marked.use(markedTerminal());
@@ -25,7 +27,6 @@ export interface LoggerOptions {
 }
 
 export class Logger {
-  private level: LogLevel;
   private prefix: string;
   private timestamp: boolean;
   private colors: boolean;
@@ -33,7 +34,6 @@ export class Logger {
   private parseMarkdown: boolean;
 
   constructor(options: LoggerOptions = {}) {
-    this.level = options.level || LogLevel.INFO;
     this.prefix = options.prefix || "";
     this.timestamp =
       options.timestamp !== undefined ? options.timestamp : false;
@@ -42,6 +42,10 @@ export class Logger {
       options.showLogLevel !== undefined ? options.showLogLevel : false;
     this.parseMarkdown =
       options.parseMarkdown !== undefined ? options.parseMarkdown : false;
+  }
+
+  getLevel(): LogLevel {
+    return getDebug() ? LogLevel.DEBUG : LogLevel.INFO;
   }
 
   private formatMessage(level: LogLevel, message: string): string {
@@ -72,7 +76,7 @@ export class Logger {
 
   private shouldLog(level: LogLevel): boolean {
     const levels = Object.values(LogLevel);
-    const currentLevelIndex = levels.indexOf(this.level);
+    const currentLevelIndex = levels.indexOf(this.getLevel());
     const targetLevelIndex = levels.indexOf(level);
     return targetLevelIndex >= currentLevelIndex;
   }

@@ -5,6 +5,7 @@ import { FunctionManager } from "../functions/manager";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { Thread } from "../repositories";
+import { getAgentMode } from "../utils/context-vars";
 
 export function displayThreadsList(threads: Thread[]) {
   const formattedThreads = formatThreadsForDisplay(threads);
@@ -104,14 +105,27 @@ export async function promptThreadSelection(
   return selectedThread;
 }
 
+export function isTTY() {
+  return process.stdout.isTTY;
+}
+
 export function showUserMessage(message: string) {
+  if (!isTTY()) {
+    return;
+  }
   logger.info(chalk.bold.cyan("You: ") + chalk.white(message));
 }
 
 export function showAssistantMessagePrefix() {
+  if (!isTTY() || !getAgentMode()) {
+    return;
+  }
   process.stdout.write(chalk.bold.yellow("LLM: "));
 }
 
 export function showAssistantMessage(message: string) {
+  if (!isTTY()) {
+    return process.stdout.write(message);
+  }
   process.stdout.write(chalk.white(message));
 }

@@ -269,6 +269,7 @@ function setupMainCommand(program: Command) {
       "-t, --thread <threadId>",
       "Continue conversation in specified thread",
     )
+    .option("--debug", "Run in debug mode")
     .action(async (input: string, options) => {
       await Input.processAiCommandWithContext(input, options);
     });

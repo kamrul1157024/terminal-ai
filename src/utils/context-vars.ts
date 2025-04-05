@@ -8,6 +8,8 @@ type Store = {
   showCostInfo: boolean;
   autoApprove: boolean;
   activeProfile?: ProfileConfig;
+  debug: boolean;
+  agentMode: boolean;
 };
 
 const contextVars = new AsyncLocalStorage<Store>();
@@ -69,6 +71,28 @@ function getActiveProfile(): ProfileConfig | undefined {
   return contextVars.getStore()?.activeProfile;
 }
 
+function setDebug(debug: boolean) {
+  const store = contextVars.getStore();
+  if (store) {
+    store.debug = debug;
+  }
+}
+
+function getDebug(): boolean | undefined {
+  return contextVars.getStore()?.debug;
+}
+
+function setAgentMode(agentMode: boolean) {
+  const store = contextVars.getStore();
+  if (store) {
+    store.agentMode = agentMode;
+  }
+}
+
+function getAgentMode(): boolean | undefined {
+  return contextVars.getStore()?.agentMode;
+}
+
 export {
   setAutoApprove,
   getAutoApprove,
@@ -79,4 +103,8 @@ export {
   getShowCostInfo,
   setActiveProfile,
   getActiveProfile,
+  setDebug,
+  getDebug,
+  setAgentMode,
+  getAgentMode,
 };

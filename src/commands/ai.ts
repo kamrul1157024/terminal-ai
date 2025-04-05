@@ -3,6 +3,7 @@ import { createLLMProvider } from "../llm";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { LLM } from "../services/llm";
+import { showAssistantMessage } from "../ui/output";
 import { getCostTracker, getShowCostInfo } from "../utils/context-vars";
 import { getSystemInfoFromOS } from "../utils/system-info";
 
@@ -23,9 +24,9 @@ export async function processAiCommand(
   context?: string,
 ): Promise<void> {
   try {
-    logger.info(`Processing: "${input}"`);
+    logger.debug(`Processing: "${input}"`);
     if (context) {
-      logger.info(`With context: ${context}`);
+      logger.debug(`With context: ${context}`);
     }
 
     const llmProvider = createLLMProvider();
@@ -41,7 +42,7 @@ export async function processAiCommand(
 
     let userInput = input;
     if (context) {
-      userInput = `Context: ${context}\n${userInput}`;
+      userInput = `${context}\n${userInput}`;
     }
 
     const history: Message<MessageRole>[] = [];
@@ -51,10 +52,10 @@ export async function processAiCommand(
     });
 
     const { usage } = await llm.generateStreamingCompletion({
-      onToken: (token: string) => process.stdout.write(token),
+      onToken: (token: string) => showAssistantMessage(token),
       conversationHistory: history,
     });
-
+    process.stdout.write("\n");
     getCostTracker()?.addUsage(usage);
 
     if (getShowCostInfo()) {

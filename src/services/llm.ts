@@ -9,7 +9,7 @@ import {
   CompletionOptions,
   TokenUsage,
 } from "../llm/interface";
-import { showAssistantMessagePrefix } from "../ui/output";
+import { isTTY, showAssistantMessagePrefix } from "../ui/output";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
@@ -63,8 +63,10 @@ export class LLM {
     const spinner = ora({
       text: chalk.yellow("AI Assistant is thinking..."),
       spinner: "dots",
-    }).start();
-
+    });
+    if (isTTY()) {
+      spinner.start();
+    }
     const onStreamToken = (token: string) => {
       if (spinner.isSpinning) {
         spinner.stop();
