@@ -1,19 +1,20 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
+import { logger } from "./utils/logger";
 
 /**
  * Displays a list of threads
  */
 export function displayThreadsList(threads: any[]) {
-  console.log(chalk.bold.blue("\n📋 Conversation Threads"));
-  console.log(chalk.blue("=====================\n"));
+  logger.info(chalk.bold.blue("\n📋 Conversation Threads"));
+  logger.info(chalk.blue("=====================\n"));
 
   // Format threads for display
   const formattedThreads = formatThreadsForDisplay(threads);
 
   // Display threads
   formattedThreads.forEach((thread) => {
-    console.log(`${chalk.cyan(thread.index)}. ${thread.displayString}`);
+    logger.info(`${chalk.cyan(thread.index)}. ${thread.displayString}`);
   });
 }
 
@@ -42,21 +43,21 @@ export function formatThreadsForDisplay(threads: any[]) {
 export function displayConversationHistory(thread: any) {
   // Print the existing conversation
   if (thread.messages.length > 0) {
-    console.log(chalk.bold.blue("\nConversation history:"));
-    console.log(chalk.blue("===================="));
+    logger.info(chalk.bold.blue("\nConversation history:"));
+    logger.info(chalk.blue("===================="));
 
     // Display conversation history
     thread.messages.forEach((message: any) => {
       const role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
       if (message.role === "user") {
-        console.log(`\n${chalk.green(`${role}:`)} ${message.content}`);
+        logger.info(`\n${chalk.green(`${role}:`)} ${message.content}`);
       } else if (message.role === "assistant") {
-        console.log(`\n${chalk.yellow(`${role}:`)} ${message.content}`);
+        logger.info(`\n${chalk.yellow(`${role}:`)} ${message.content}`);
       }
     });
 
-    console.log(chalk.blue("\n===================="));
-    console.log(
+    logger.info(chalk.blue("\n===================="));
+    logger.info(
       chalk.bold("Continuing conversation. Type your message below:"),
     );
   }
@@ -89,7 +90,7 @@ export async function promptThreadSelection(threads: any[]): Promise<string> {
 
   // Add SIGINT (Ctrl+C) handler
   process.on("SIGINT", () => {
-    console.log(chalk.yellow("\nOperation cancelled by user. Exiting..."));
+    logger.info(chalk.yellow("\nOperation cancelled by user. Exiting..."));
     process.exit(0);
   });
 

@@ -67,7 +67,7 @@ async function ensureConfigured() {
  * Sets up context variables for the AI session
  */
 function setupContextVariables(options: any) {
-  setAutoApprove(options.autopilot);
+  setAutoApprove(options.autoApprove);
   setCostTracker(new CumulativeCostTracker());
   setShowCostInfo(options.cost);
 }

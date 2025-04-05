@@ -1,6 +1,5 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import ora from "ora";
 import os from "os";
 import { createLLMProvider } from "../llm";
 import { CommandProcessor } from "../services";
@@ -20,13 +19,8 @@ import { logger } from "../utils/logger";
 import { getShowCostInfo } from "../utils/context-vars";
 import { SQLiteSessionManager, Thread } from "../session-manager";
 
-// Constants
 const costTracker = new CumulativeCostTracker();
 
-/**
- * Gets detailed system information using the os module
- * @returns A formatted string with system information
- */
 function getSystemInfoFromOS(): string {
   const osType = os.type();
   const osRelease = os.release();
@@ -113,12 +107,12 @@ async function processUserInput(): Promise<{
   }
 
   if (trimmedInput === HELP_COMMAND) {
-    console.log(HELP_MESSAGE);
+    logger.info(HELP_MESSAGE);
     return processUserInput();
   }
 
   if (!trimmedInput) {
-    console.log(EMPTY_INPUT_MESSAGE);
+    logger.info(EMPTY_INPUT_MESSAGE);
     return processUserInput();
   }
 
@@ -179,7 +173,7 @@ export async function runAgentMode({
         thread = await sessionManager.createThread();
       } else {
         thread = existingThread;
-        console.log(
+        logger.info(
           chalk.blue(
             `Loaded thread: ${chalk.bold(thread.name)} (${thread.id})`,
           ),
@@ -187,7 +181,7 @@ export async function runAgentMode({
       }
     } else {
       thread = await sessionManager.createThread();
-      console.log(
+      logger.info(
         chalk.blue(
           `Created new thread: ${chalk.bold(thread.name)} (${thread.id})`,
         ),
@@ -206,8 +200,8 @@ export async function runAgentMode({
     if (conversationHistory.length === 0) {
       if (!userInput.trim()) {
         // Welcome message for new threads
-        console.log(chalk.cyan.bold("\n=== Terminal AI Assistant ==="));
-        console.log(
+        logger.info(chalk.cyan.bold("\n=== Terminal AI Assistant ==="));
+        logger.info(
           chalk.cyan(
             "Type your questions or commands. Type \\help for available commands.\n",
           ),
@@ -249,7 +243,7 @@ export async function runAgentMode({
       if (conversationHistory.length > 0) {
         const lastMessage = conversationHistory[conversationHistory.length - 1];
         if (lastMessage.role === "user") {
-          console.log(
+          logger.info(
             chalk.bold.cyan("\nYou: ") +
               chalk.white(lastMessage.content) +
               "\n",
@@ -270,7 +264,7 @@ export async function runAgentMode({
       });
 
       // Add a newline after streaming is complete
-      console.log("\n");
+      logger.info("\n");
 
       conversationHistory = history;
 
@@ -308,7 +302,7 @@ export async function runAgentMode({
       if (
         conversationHistory[conversationHistory.length - 1].role === "assistant"
       ) {
-        console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
+        logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 
         const { shouldContinue, input } = await processUserInput();
         if (!shouldContinue) {
@@ -322,15 +316,15 @@ export async function runAgentMode({
     }
 
     // Show a nice exit message with cost info
-    console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
-    console.log(chalk.blue.bold("Session ended."));
+    logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
+    logger.info(chalk.blue.bold("Session ended."));
     costTracker.displayTotalCost();
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.log(chalk.red(`\n❌ Error: ${error.message}`));
+      logger.info(chalk.red(`\n❌ Error: ${error.message}`));
       logger.error(`Error in agent mode: ${error.message}`);
     } else {
-      console.log(chalk.red(`\n❌ Error: ${String(error)}`));
+      logger.info(chalk.red(`\n❌ Error: ${String(error)}`));
       logger.error(`Error in agent mode: ${String(error)}`);
     }
   }

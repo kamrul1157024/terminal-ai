@@ -89,7 +89,7 @@ function setupMainCommand(program: Command) {
   program
     .argument("<input>", "The command to interpret")
     .option("-a, --agent", "Run in agent mode with continuous conversation")
-    .option("--autopilot", "Run in autopilot mode")
+    .option("--auto-approve", "Run in auto-approve mode")
     .option("--cost", "Show cost information")
     .option(
       "-t, --thread <threadId>",

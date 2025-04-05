@@ -3,7 +3,7 @@ import { logger } from "./utils/logger";
 import { runAgentMode } from "./commands/agent";
 import {
   runWithContext,
-  setAutopilot,
+  setAutoApprove,
   setCostTracker,
   setShowCostInfo,
 } from "./utils/context-vars";
@@ -130,7 +130,7 @@ export async function attachToThread(threadId: string) {
  */
 async function startAgentModeWithThread(threadId: string) {
   await runWithContext(async () => {
-    setAutopilot(false);
+    setAutoApprove(false);
     setCostTracker(new CumulativeCostTracker());
     setShowCostInfo(false);
 
