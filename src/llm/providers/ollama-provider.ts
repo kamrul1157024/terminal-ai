@@ -103,9 +103,7 @@ export class OllamaProvider implements LLMProvider {
     };
   }
 
-  private mapToOllamaTools(
-    functions: FunctionDefinition[],
-  ): Array<{
+  private mapToOllamaTools(functions: FunctionDefinition[]): Array<{
     type: string;
     function: {
       name: string;

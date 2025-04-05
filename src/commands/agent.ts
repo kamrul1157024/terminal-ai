@@ -1,5 +1,3 @@
-import os from "os";
-
 import chalk from "chalk";
 import inquirer from "inquirer";
 
@@ -9,41 +7,14 @@ import { logger } from "../logger";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
-import { CumulativeCostTracker } from "../services/pricing";
 import { showAssistantMessage, showUserMessage } from "../ui/output";
-const costTracker = new CumulativeCostTracker();
-
-function getSystemInfoFromOS(): string {
-  const osType = os.type();
-  const osRelease = os.release();
-  const osPlatform = os.platform();
-  const osArch = os.arch();
-  const totalMemory = Math.round(os.totalmem() / (1024 * 1024 * 1024));
-  const freeMemory = Math.round(os.freemem() / (1024 * 1024 * 1024));
-  const cpuInfo = os.cpus()[0]?.model || "Unknown CPU";
-  const cpuCores = os.cpus().length;
-  const uptime = Math.round(os.uptime() / 3600);
-  const hostname = os.hostname();
-  const username = os.userInfo().username;
-  const homedir = os.homedir();
-  const shell = os.userInfo().shell || "Unknown shell";
-
-  return `
-OS: ${osType} ${osRelease} (${osPlatform} ${osArch})
-Hostname: ${hostname}
-Username: ${username}
-Home directory: ${homedir}
-Shell: ${shell}
-CPU: ${cpuInfo} (${cpuCores} cores)
-Memory: ${freeMemory}GB free of ${totalMemory}GB total
-Uptime: ${uptime} hours
-`;
-}
+import { getCostTracker } from "../utils/context-vars";
+import { getSystemInfoFromOS } from "../utils/system-info";
 
 const AGENT_SYSTEM_PROMPT_TEMPLATE = `You are a helpful terminal AI assistant. Help the user accomplish their tasks by executing terminal commands.
 
 SYSTEM INFORMATION:
-{{systemInfo}}
+${getSystemInfoFromOS()}
 
 CAPABILITIES:
 - Execute terminal commands to help users complete their tasks
@@ -126,17 +97,10 @@ export async function runAgentMode({
     const functionManager = new FunctionManager();
     functionManager.registerFunction(FunctionDefinitions.commandExecutor);
 
-    const systemInfo = getSystemInfoFromOS();
-
-    const AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_TEMPLATE.replace(
-      "{{systemInfo}}",
-      systemInfo,
-    );
-
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,
-      systemPrompt: AGENT_SYSTEM_PROMPT,
+      systemPrompt: AGENT_SYSTEM_PROMPT_TEMPLATE,
       functionManager,
     });
 
@@ -242,7 +206,7 @@ export async function runAgentMode({
           await threadRepository.renameThread(thread.id, truncatedName);
         }
 
-        costTracker.addUsage(usage);
+        getCostTracker()?.addUsage(usage);
       } else {
         logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 
@@ -260,7 +224,7 @@ export async function runAgentMode({
     // Show a nice exit message with cost info
     logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
     logger.info(chalk.blue.bold("Session ended."));
-    costTracker.displayTotalCost();
+    getCostTracker()?.displayTotalCost();
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.info(chalk.red(`\n❌ Error: ${error.message}`));

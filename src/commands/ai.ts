@@ -3,10 +3,14 @@ import { createLLMProvider } from "../llm";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { LLM } from "../services/llm";
-import { displayCostInfo } from "../services/pricing";
-import { getShowCostInfo } from "../utils/context-vars";
+import { getCostTracker, getShowCostInfo } from "../utils/context-vars";
+import { getSystemInfoFromOS } from "../utils/system-info";
 
-const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.`;
+const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.
+
+SYSTEM INFORMATION:
+${getSystemInfoFromOS()}
+`;
 
 const CONTEXT_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands. 
   Use the provided context to inform your command generation. 
@@ -51,8 +55,10 @@ export async function processAiCommand(
       conversationHistory: history,
     });
 
+    getCostTracker()?.addUsage(usage);
+
     if (getShowCostInfo()) {
-      displayCostInfo(usage);
+      getCostTracker()?.displayTotalCost();
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
