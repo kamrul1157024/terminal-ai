@@ -4,8 +4,8 @@ import {
   MessageRole,
   CompletionOptions,
   FunctionCallResponse,
+  TokenUsage,
 } from "../llm/interface";
-import { displayCostInfo } from "../utils/pricing-calculator";
 import { FunctionCallProcessor } from "./functioncall-processor";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
@@ -17,23 +17,19 @@ export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
 export class CommandProcessor {
   private llmProvider: LLMProvider;
   private systemPrompt: string;
-  private showCostInfo: boolean = true;
   private functionCallProcessor: FunctionCallProcessor;
 
   constructor({
     llmProvider,
     systemPrompt = DEFAULT_TERMINAL_SYSTEM_PROMPT,
-    showCostInfo = true,
     functionCallProcessor = new FunctionCallProcessor(),
   }: {
     llmProvider: LLMProvider;
     systemPrompt?: string;
-    showCostInfo?: boolean;
     functionCallProcessor?: FunctionCallProcessor;
   }) {
     this.llmProvider = llmProvider;
     this.systemPrompt = systemPrompt;
-    this.showCostInfo = showCostInfo;
     this.functionCallProcessor = functionCallProcessor;
   }
 
@@ -45,7 +41,10 @@ export class CommandProcessor {
     input: string;
     onToken: (token: string) => void;
     conversationHistory: Message<MessageRole>[];
-  }): Promise<Message<MessageRole>[]> {
+  }): Promise<{
+    history: Message<MessageRole>[];
+    usage: TokenUsage;
+  }> {
     const history = [...conversationHistory];
 
     const messages: Message<MessageRole>[] = [
@@ -65,10 +64,6 @@ export class CommandProcessor {
       onToken,
       options,
     );
-
-    if (this.showCostInfo && completion.usage) {
-      displayCostInfo(completion.usage);
-    }
 
     if (completion.functionCalls && completion.functionCalls.length > 0) {
       history.push({
@@ -99,10 +94,13 @@ export class CommandProcessor {
         content: completion.content,
       });
     }
-    return history;
-  }
-
-  setCostInfoDisplay(enable: boolean): void {
-    this.showCostInfo = enable;
+    return {
+      history,
+      usage: completion.usage || {
+        inputTokens: 0,
+        outputTokens: 0,
+        model: this.llmProvider.getModel(),
+      },
+    };
   }
 }

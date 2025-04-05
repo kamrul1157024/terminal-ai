@@ -10,6 +10,8 @@ import { runAgentMode } from "./agent";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../utils/logger";
 import { FunctionCallProcessor } from "../services/functioncall-processor";
+import { displayCostInfo } from "../utils/pricing-calculator";
+import { getShowCostInfo } from "../utils/context-vars";
 
 const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.`;
 
@@ -44,7 +46,6 @@ export async function processAiCommand(
     const commandProcessor = new CommandProcessor({
       llmProvider,
       systemPrompt: context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT,
-      showCostInfo: true,
       functionCallProcessor,
     });
 
@@ -56,11 +57,15 @@ export async function processAiCommand(
       });
     }
 
-    await commandProcessor.processCommand({
+    const { usage } = await commandProcessor.processCommand({
       input,
       onToken: (token: string) => process.stdout.write(token),
       conversationHistory: history,
     });
+
+    if (getShowCostInfo()) {
+      displayCostInfo(usage);
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error(`Error: ${error.message}`);

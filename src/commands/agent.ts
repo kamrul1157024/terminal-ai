@@ -1,7 +1,7 @@
 import inquirer from "inquirer";
 import { createLLMProvider } from "../llm";
 import { CommandProcessor } from "../services";
-import { MessageRole, Message } from "../llm/interface";
+import { MessageRole, Message, TokenUsage } from "../llm/interface";
 import {
   getSystemInfoFunction,
   getSystemInfoHandler,
@@ -9,8 +9,12 @@ import {
   executeCommandHandler,
 } from "../functions";
 import { FunctionCallProcessor } from "../services/functioncall-processor";
-import { CumulativeCostTracker } from "../utils/pricing-calculator";
+import {
+  CumulativeCostTracker,
+  displayCostInfo,
+} from "../utils/pricing-calculator";
 import { logger } from "../utils/logger";
+import { getShowCostInfo } from "../utils/context-vars";
 
 // Constants
 const costTracker = new CumulativeCostTracker();
@@ -78,7 +82,6 @@ export async function runAgentMode({
     const commandProcessor = new CommandProcessor({
       llmProvider,
       systemPrompt: AGENT_SYSTEM_PROMPT,
-      showCostInfo: true,
       functionCallProcessor,
     });
 
@@ -95,13 +98,23 @@ export async function runAgentMode({
       content: userInput,
     });
 
+    const totalUsage: TokenUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      model: llmProvider.getModel(),
+    };
+
     while (true) {
       // Process the command with the LLM
-      conversationHistory = await commandProcessor.processCommand({
+      const { history, usage } = await commandProcessor.processCommand({
         input: userInput,
         onToken: (token: string) => process.stdout.write(token),
         conversationHistory,
       });
+
+      conversationHistory = history;
+      totalUsage.inputTokens += usage.inputTokens;
+      totalUsage.outputTokens += usage.outputTokens;
 
       // Get next user input if the last message was from the assistant
       if (
@@ -111,7 +124,9 @@ export async function runAgentMode({
         if (!shouldContinue) {
           break;
         }
-
+        if (getShowCostInfo()) {
+          displayCostInfo(totalUsage);
+        }
         userInput = input;
       }
     }

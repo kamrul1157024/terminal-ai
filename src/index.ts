@@ -6,7 +6,13 @@ import { initCommand } from "./commands/init";
 import { configExists } from "./utils/config";
 import { logger } from "./utils/logger";
 import "./utils/model-config"; // Ensure model config is loaded
-import { runWithContext, setAutopilot } from "./utils/context-vars";
+import {
+  runWithContext,
+  setAutopilot,
+  setCostTracker,
+  setShowCostInfo,
+} from "./utils/context-vars";
+import { CumulativeCostTracker } from "./utils/pricing-calculator";
 
 // Package version from package.json
 const packageJson = require("../package.json");
@@ -63,6 +69,8 @@ function processAiCommandWithContext(input: string, options: any) {
     const pipedContent = await readFromStdin();
 
     setAutopilot(options.autopilot);
+    setCostTracker(new CumulativeCostTracker());
+    setShowCostInfo(options.costInfo);
 
     if (options.agent) {
       await runAgentMode({
@@ -80,6 +88,7 @@ program
   .argument("<input>", "The command to interpret")
   .option("-a, --agent", "Run in agent mode with continuous conversation")
   .option("--autopilot", "Run in autopilot mode")
+  .option("--cost", "Show cost information")
   .action(async (input: string, options) => {
     await processAiCommandWithContext(input, options);
   });
