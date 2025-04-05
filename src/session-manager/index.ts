@@ -1,2 +1,2 @@
 export * from './interfaces';
-export * from './file-session-manager'; 
+export * from './sqlite-session-manager'; 

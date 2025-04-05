@@ -15,7 +15,7 @@ import {
 } from "../utils/pricing-calculator";
 import { logger } from "../utils/logger";
 import { getShowCostInfo } from "../utils/context-vars";
-import { FileSessionManager, Thread } from "../session-manager";
+import { SQLiteSessionManager, Thread } from "../session-manager";
 
 // Constants
 const costTracker = new CumulativeCostTracker();
@@ -91,7 +91,7 @@ export async function runAgentMode({
     });
 
     // Initialize the session manager
-    const sessionManager = new FileSessionManager();
+    const sessionManager = new SQLiteSessionManager();
     
     // Initialize or load thread
     let thread: Thread;
@@ -163,6 +163,23 @@ export async function runAgentMode({
       
       // Update the thread with new messages
       await sessionManager.updateThread(thread.id, conversationHistory);
+      
+      // If this is a new thread with the default name and we now have both user input and AI response,
+      // generate a better name based on the conversation content
+      if (thread.name.startsWith('Thread-') && conversationHistory.length >= 2) {
+        const userMessage = conversationHistory.find(msg => msg.role === 'user')?.content || '';
+        const aiResponse = conversationHistory.find(msg => msg.role === 'assistant')?.content || '';
+        
+        // Create a name by combining user input and AI response
+        const combinedContent = `${userMessage} ${aiResponse}`;
+        // Trim to max 120 chars and add ellipsis if truncated
+        const truncatedName = combinedContent.length > 120 
+          ? `${combinedContent.substring(0, 120).trim()}...` 
+          : combinedContent;
+        
+        // Update the thread name
+        await sessionManager.renameThread(thread.id, truncatedName);
+      }
       
       totalUsage.inputTokens += usage.inputTokens;
       totalUsage.outputTokens += usage.outputTokens;

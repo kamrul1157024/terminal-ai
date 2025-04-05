@@ -14,7 +14,7 @@ import {
   setShowCostInfo,
 } from "./utils/context-vars";
 import { CumulativeCostTracker } from "./utils/pricing-calculator";
-import { FileSessionManager } from "./session-manager";
+import { SQLiteSessionManager } from "./session-manager";
 
 // Package version from package.json
 const packageJson = require("../package.json");
@@ -45,7 +45,7 @@ threadCommand
   .command("list")
   .description("List all conversation threads")
   .action(async () => {
-    const sessionManager = new FileSessionManager();
+    const sessionManager = new SQLiteSessionManager();
     const threads = await sessionManager.listThreads();
     
     if (threads.length === 0) {
@@ -69,7 +69,7 @@ threadCommand
   .command("delete <thread-id>")
   .description("Delete a specific conversation thread")
   .action(async (threadId: string) => {
-    const sessionManager = new FileSessionManager();
+    const sessionManager = new SQLiteSessionManager();
     const thread = await sessionManager.getThread(threadId);
     
     if (!thread) {
@@ -90,7 +90,7 @@ threadCommand
   .command("attach <thread-id>")
   .description("Attach to an existing conversation thread")
   .action(async (threadId: string) => {
-    const sessionManager = new FileSessionManager();
+    const sessionManager = new SQLiteSessionManager();
     const thread = await sessionManager.getThread(threadId);
     
     if (!thread) {
@@ -135,7 +135,7 @@ threadCommand
   .command("rename <thread-id> <new-name>")
   .description("Rename an existing conversation thread")
   .action(async (threadId: string, newName: string) => {
-    const sessionManager = new FileSessionManager();
+    const sessionManager = new SQLiteSessionManager();
     const thread = await sessionManager.getThread(threadId);
     
     if (!thread) {

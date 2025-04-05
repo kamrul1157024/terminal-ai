@@ -6,7 +6,6 @@ import {
   getSystemInfoFunction,
   getSystemInfoHandler,
 } from "../functions";
-import { runAgentMode, AgentModeOptions } from "./agent";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../utils/logger";
 import { FunctionCallProcessor } from "../services/functioncall-processor";
@@ -74,5 +73,3 @@ export async function processAiCommand(
     }
   }
 }
-
-export { runAgentMode };
