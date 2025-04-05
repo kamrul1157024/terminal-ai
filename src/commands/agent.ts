@@ -15,6 +15,7 @@ import {
 } from "../utils/pricing-calculator";
 import { logger } from "../utils/logger";
 import { getShowCostInfo } from "../utils/context-vars";
+import { FileSessionManager, Thread } from "../session-manager";
 
 // Constants
 const costTracker = new CumulativeCostTracker();
@@ -60,13 +61,17 @@ async function processUserInput(): Promise<{
   return { shouldContinue: true, input: trimmedInput };
 }
 
+export interface AgentModeOptions {
+  input: string;
+  context?: string;
+  threadId?: string;
+}
+
 export async function runAgentMode({
   input,
   context,
-}: {
-  input: string;
-  context?: string;
-}): Promise<void> {
+  threadId,
+}: AgentModeOptions): Promise<void> {
   try {
     const functionCallProcessor = new FunctionCallProcessor();
     functionCallProcessor.registerFunction(
@@ -85,7 +90,26 @@ export async function runAgentMode({
       functionCallProcessor,
     });
 
-    let conversationHistory: Message<MessageRole>[] = [];
+    // Initialize the session manager
+    const sessionManager = new FileSessionManager();
+    
+    // Initialize or load thread
+    let thread: Thread;
+    if (threadId) {
+      const existingThread = await sessionManager.getThread(threadId);
+      if (!existingThread) {
+        logger.info(`Thread with ID ${threadId} not found. Creating a new thread.`);
+        thread = await sessionManager.createThread();
+      } else {
+        thread = existingThread;
+        logger.info(`Loaded thread: ${thread.name} (${thread.id})`);
+      }
+    } else {
+      thread = await sessionManager.createThread();
+      logger.info(`Created new thread: ${thread.name} (${thread.id})`);
+    }
+
+    let conversationHistory = thread.messages;
     let userInput = input;
 
     if (context && context.trim()) {
@@ -93,10 +117,33 @@ export async function runAgentMode({
       logger.info("Including piped content as additional context");
     }
 
-    conversationHistory.push({
-      role: "user",
-      content: userInput,
-    });
+    // Add the initial user message if starting a new conversation
+    if (conversationHistory.length === 0) {
+      if (!userInput.trim()) {
+        // If no input is provided and this is a new thread, prompt for input
+        const { shouldContinue, input: firstInput } = await processUserInput();
+        if (!shouldContinue) {
+          return;
+        }
+        userInput = firstInput;
+      }
+      
+      conversationHistory.push({
+        role: "user",
+        content: userInput,
+      });
+    } else if (userInput.trim()) {
+      // If continuing a conversation and input is provided, add it
+      conversationHistory.push({
+        role: "user",
+        content: userInput,
+      });
+    }
+
+    // Update the thread with the messages
+    if (conversationHistory.length > thread.messages.length) {
+      await sessionManager.updateThread(thread.id, conversationHistory);
+    }
 
     const totalUsage: TokenUsage = {
       inputTokens: 0,
@@ -113,6 +160,10 @@ export async function runAgentMode({
       });
 
       conversationHistory = history;
+      
+      // Update the thread with new messages
+      await sessionManager.updateThread(thread.id, conversationHistory);
+      
       totalUsage.inputTokens += usage.inputTokens;
       totalUsage.outputTokens += usage.outputTokens;
 

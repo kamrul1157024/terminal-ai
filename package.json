@@ -58,11 +58,13 @@
     "prettier": "^3.5.3",
     "tiktoken": "^1.0.20",
     "typescript": "^5.8.2",
+    "uuid": "^11.1.0",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
     "@types/marked-terminal": "^6.1.1",
+    "@types/uuid": "^10.0.0",
     "@types/yaml": "^1.9.7",
     "chokidar": "^4.0.3",
     "copyfiles": "^2.4.1",
