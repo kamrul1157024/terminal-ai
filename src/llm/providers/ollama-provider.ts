@@ -51,6 +51,22 @@ export class OllamaProvider implements LLMProvider {
           content: msg.content as string,
         });
       }
+
+      if (msg.role === "function_call") {
+        ollamaMessages.push({
+          role: "assistant",
+          content: "",
+          // @ts-ignore
+          tool_calls: msg.content.map((call) => ({
+            id: call.callId,
+            type: "function",
+            function: {
+              name: call.name,
+              arguments: call.arguments,
+            },
+          })),
+        });
+      }
       
       // Handle function calls and results if needed
       if (msg.role === "function") {
