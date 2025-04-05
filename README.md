@@ -89,24 +89,6 @@ ps aux | ai "find all Node.js processes"
 tail -n 100 server.log | ai "what errors occurred in the last 100 lines"
 ```
 
-### Environment Variables
-
-You can override configuration settings using environment variables:
-
-```bash
-# Set API key
-export AI_API_KEY=your_api_key
-ai "list files"
-
-# Change model
-export AI_MODEL=gpt-4
-ai "analyze this code"
-
-# Set provider
-export AI_PROVIDER=claude
-ai "help me with this task"
-```
-
 ## Thread Management
 
 Threads allow you to maintain conversational context across multiple interactions with the AI. This is especially useful for complex tasks that require multiple steps or when you want to continue a conversation later.
