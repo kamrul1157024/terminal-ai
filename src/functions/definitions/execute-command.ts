@@ -137,9 +137,6 @@ export const executeCommandHandler = async (args: {
   command: string;
 }): Promise<{ stdout: string; stderr: string }> => {
   const command = args.command;
-
-  logger.command(command);
-
   if (!isSystemQueryingCommand(command) && !getAutoApprove()) {
     const { confirm } = await inquirer.prompt([
       {
@@ -208,6 +205,6 @@ export const commandExecutor: LLMFunction<typeof ArgumentsSchema> = {
     return { data: stdout, error: stderr };
   },
   render: ({ command }) => {
-    return `Executing command: ${command}`;
+    logger.command(command);
   },
 };

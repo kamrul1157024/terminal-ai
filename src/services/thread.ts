@@ -116,10 +116,7 @@ export async function attachToThread(threadId: string) {
     logger.error(`Thread with ID ${threadId} not found.`);
     return;
   }
-
   logger.info(`Attaching to thread: ${thread.name} (ID: ${thread.id})`);
-
-  Output.displayConversationHistory(thread);
   await startAgentModeWithThread(thread.id);
 }
 

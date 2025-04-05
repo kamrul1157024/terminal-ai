@@ -4,6 +4,7 @@ import inquirer from "inquirer";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { Thread } from "../repositories";
+import { FunctionManager } from "../functions/manager";
 
 export function displayThreadsList(threads: Thread[]) {
   const formattedThreads = formatThreadsForDisplay(threads);
@@ -29,7 +30,7 @@ export function formatThreadsForDisplay(threads: Thread[]) {
   });
 }
 
-export function displayConversationHistory(thread: Thread) {
+export function displayConversationHistory(thread: Thread, functionManager: FunctionManager) {
   if (thread.messages.length > 0) {
     thread.messages.forEach((message: Message<MessageRole>) => {
       if (message.role === "user") {
@@ -39,6 +40,20 @@ export function displayConversationHistory(thread: Thread) {
       if (message.role === "assistant") {
         showAssistantMessagePrefix();
         showAssistantMessage(message.content);
+        return;
+      }
+      if (message.role === "function_call") {
+        message.content.forEach((functionCall) => {
+          functionManager.handleFunctionCallRender(functionCall);
+        });
+      }
+      if (message.role === "function") {
+        const data = JSON.parse(message.content[0].result);
+        if (data.error) {
+          logger.error(data.error);
+        } else {
+          logger.info(data.data);
+        }
         return;
       }
     });

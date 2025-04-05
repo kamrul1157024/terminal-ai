@@ -7,7 +7,7 @@ import { logger } from "../logger";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
-import { showAssistantMessage, showUserMessage } from "../ui/output";
+import { displayConversationHistory, showAssistantMessage, showUserMessage } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
 import { getSystemInfoFromOS } from "../utils/system-info";
 
@@ -113,6 +113,7 @@ export async function runAgentMode({
         thread = await threadRepository.createThread();
       } else {
         thread = existingThread;
+        displayConversationHistory(thread, functionManager);
       }
     } else {
       thread = await threadRepository.createThread();

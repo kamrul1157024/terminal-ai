@@ -5,5 +5,5 @@ export type LLMFunction<T extends ZodTypeAny> = {
   name: string;
   description: string;
   handler: (args: z.infer<T>) => Promise<{ data: string; error?: string }>;
-  render: (args: z.infer<T>) => string;
+  render: (args: z.infer<T>) => void;
 };

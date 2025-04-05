@@ -5,9 +5,11 @@ import {
   FunctionCallResult,
   FunctionDefinition,
   FunctionHandler,
+  FunctionUIRender,
 } from "../llm/interface";
 
 import { LLMFunction } from "./types";
+import { logger } from "../logger";
 function getFunctionDefinition<T extends ZodTypeAny>(
   functionDefinition: LLMFunction<T>,
 ): FunctionDefinition {
@@ -24,6 +26,7 @@ function getFunctionDefinition<T extends ZodTypeAny>(
 export class FunctionManager {
   private functions: FunctionDefinition[] = [];
   private functionHandlers: Map<string, FunctionHandler> = new Map();
+  private functionUIRenders: Map<string, FunctionUIRender> = new Map();
 
   constructor() {
     this.functionHandlers = new Map();
@@ -33,10 +36,23 @@ export class FunctionManager {
   registerFunction<T extends ZodTypeAny>(definition: LLMFunction<T>): void {
     this.functions.push(getFunctionDefinition(definition));
     this.functionHandlers.set(definition.name, definition.handler);
+    this.functionUIRenders.set(definition.name, definition.render);
   }
 
   getFunctions(): FunctionDefinition[] {
     return this.functions;
+  }
+
+  handleFunctionCallRender(functionCall: FunctionCallResult) {
+    const render = this.functionUIRenders.get(functionCall.name);
+
+    if (!render) {
+      logger.warn(
+        `No render registered for function: ${functionCall.name}`,
+      );
+    }
+
+    render?.(functionCall.arguments);
   }
 
   async handleFunctionCall(functionCall: FunctionCallResult) {

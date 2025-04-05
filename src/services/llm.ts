@@ -88,6 +88,10 @@ export class LLM {
         content: completion.functionCalls,
       });
 
+      for (const functionCall of completion.functionCalls) {
+        this.functionManager.handleFunctionCallRender(functionCall);
+      }
+
       const results = await Promise.all(
         completion.functionCalls.map(
           this.functionManager.handleFunctionCall.bind(this.functionManager),

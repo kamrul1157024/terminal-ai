@@ -57,6 +57,8 @@ export type FunctionCallResult = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FunctionHandler = (args: any) => any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FunctionUIRender = (args: any) => void;
 
 export type CompletionOptions = {
   functions?: FunctionDefinition[];
