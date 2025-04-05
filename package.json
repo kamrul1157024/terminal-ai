@@ -1,5 +1,5 @@
 {
-  "name": "ai",
+  "name": "terminal-ai",
   "version": "1.1.0",
   "description": "AI-powered terminal command interpreter",
   "main": "dist/index.js",
