@@ -182,7 +182,7 @@ ai --thread <thread-id> "your command"
 To give a thread a more descriptive name:
 
 ```bash
-ai thread rename <thread-id> "New descriptive name"
+ai thread rename <thread-id> "React project setup"
 ```
 
 #### Deleting Threads
@@ -215,6 +215,104 @@ ai thread delete <thread-id>
 4. After completing the task, rename the thread for future reference:
    ```bash
    ai thread rename <thread-id> "React project setup"
+   ```
+
+## Profile Management
+
+Profiles allow you to manage multiple AI provider configurations, making it easy to switch between different providers or models without reconfiguring your settings each time.
+
+### Profile Basics
+
+Each profile contains:
+- A unique name
+- An AI provider (OpenAI, Claude, Gemini, or Ollama)
+- An API key
+- A selected model
+
+The active profile determines which AI provider and model is used for processing your commands.
+
+### Managing Profiles
+
+#### Listing Profiles
+
+To view all configured profiles:
+
+```bash
+ai profile list
+```
+
+This shows all profiles with their provider, model, and pricing information. The active profile is marked.
+
+#### Setting the Active Profile
+
+To switch to a different profile:
+
+```bash
+ai profile set <profile-name>
+```
+
+All subsequent commands will use this profile until you change it again.
+
+#### Deleting a Profile
+
+To remove a profile you no longer need:
+
+```bash
+ai profile delete <profile-name>
+```
+
+If you delete the active profile, another profile will automatically be set as active.
+
+#### Viewing Available Models
+
+To see all available models with their pricing information:
+
+```bash
+ai profile models
+```
+
+You can filter models by provider:
+
+```bash
+ai profile models --provider openai
+```
+
+### Using a Specific Profile for a Command
+
+You can temporarily use a different profile for a single command:
+
+```bash
+ai --profile <profile-name> "your command"
+```
+
+Or use the shorthand:
+
+```bash
+ai -p <profile-name> "your command"
+```
+
+### Profile Setup Example
+
+1. Run the setup wizard to create your first profile:
+   ```bash
+   ai setup
+   ```
+
+2. Create additional profiles for different providers:
+   ```bash
+   # The setup command will guide you through creating a new profile
+   ai setup
+   ```
+
+3. Switch between profiles as needed:
+   ```bash
+   ai profile set work-openai
+   ai profile set personal-claude
+   ```
+
+4. Use a specific profile without switching:
+   ```bash
+   ai -p work-openai "analyze this log file"
    ```
 
 ## Cost Tracking
