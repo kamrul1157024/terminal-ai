@@ -16,6 +16,7 @@ import {
   displayCostInfo,
 } from "../services/pricing";
 import { getShowCostInfo } from "../utils/context-vars";
+import { showAssistantMessage, showUserMessage } from "../ui/output";
 const costTracker = new CumulativeCostTracker();
 
 function getSystemInfoFromOS(): string {
@@ -134,10 +135,8 @@ export async function runAgentMode({
       ExecuteCommand.executeCommandHandler,
     );
 
-    // Get system information using the OS module
     const systemInfo = getSystemInfoFromOS();
 
-    // Create the system prompt with system information
     const AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_TEMPLATE.replace(
       "{{systemInfo}}",
       systemInfo,
@@ -150,33 +149,18 @@ export async function runAgentMode({
       functionManager,
     });
 
-    // Initialize the session manager
     const threadRepository = new SQLiteThreadRepository();
 
-    // Initialize or load thread
     let thread: Thread;
     if (threadId) {
       const existingThread = await threadRepository.getThread(threadId);
       if (!existingThread) {
-        logger.info(
-          `Thread with ID ${threadId} not found. Creating a new thread.`,
-        );
         thread = await threadRepository.createThread();
       } else {
         thread = existingThread;
-        logger.info(
-          chalk.blue(
-            `Loaded thread: ${chalk.bold(thread.name)} (${thread.id})`,
-          ),
-        );
       }
     } else {
       thread = await threadRepository.createThread();
-      logger.info(
-        chalk.blue(
-          `Created new thread: ${chalk.bold(thread.name)} (${thread.id})`,
-        ),
-      );
     }
 
     let conversationHistory = thread.messages;
@@ -184,7 +168,6 @@ export async function runAgentMode({
 
     if (context && context.trim()) {
       userInput = `${userInput}\n\nAdditional context from piped input:\n${context}`;
-      logger.info("Including piped content as additional context");
     }
 
     // Add the initial user message if starting a new conversation
@@ -223,81 +206,60 @@ export async function runAgentMode({
       await threadRepository.updateThread(thread.id, conversationHistory);
     }
 
-    const totalUsage: TokenUsage = {
-      inputTokens: 0,
-      outputTokens: 0,
-      model: llmProvider.getModel(),
-    };
-
     while (true) {
-      if (conversationHistory.length > 0) {
-        const lastMessage = conversationHistory[conversationHistory.length - 1];
-        if (lastMessage.role === "user") {
-          logger.info(
-            chalk.bold.cyan("\nYou: ") +
-            chalk.white(lastMessage.content) +
-            "\n",
-          );
+      const lastMessage = conversationHistory[conversationHistory.length - 1];
+      if (lastMessage.role === "user") {
+        showUserMessage(lastMessage.content);
+      }
+
+      if (lastMessage.role === "user" || lastMessage.role === "function") {
+        const { history, usage } = await llm.generateStreamingCompletion({
+          onToken: (token: string) => {
+            showAssistantMessage(token);
+            return;
+          },
+          conversationHistory,
+        });
+
+        conversationHistory = history;
+
+        // Update the thread with new messages
+        await threadRepository.updateThread(thread.id, conversationHistory);
+
+        // If this is a new thread with the default name and we now have both user input and AI response,
+        // generate a better name based on the conversation content
+        if (
+          thread.name.startsWith("Thread-") &&
+          conversationHistory.length >= 2
+        ) {
+          const userMessage =
+            conversationHistory.find((msg) => msg.role === "user")?.content || "";
+          const aiResponse =
+            conversationHistory.find((msg) => msg.role === "assistant")
+              ?.content || "";
+
+          // Create a name by combining user input and AI response
+          const combinedContent = `${userMessage} ${aiResponse}`;
+          // Trim to max 120 chars and add ellipsis if truncated
+          const truncatedName =
+            combinedContent.length > 120
+              ? `${combinedContent.substring(0, 120).trim()}...`
+              : combinedContent;
+
+          // Update the thread name
+          await threadRepository.renameThread(thread.id, truncatedName);
         }
-      }
 
-      const { history, usage } = await llm.generateStreamingCompletion({
-        onToken: (token: string) => {
-          process.stdout.write(chalk.white(token));
-          return;
-        },
-        conversationHistory,
-      });
+        costTracker.addUsage(usage);
 
-      // Add a newline after streaming is complete
-      logger.info("\n");
-
-      conversationHistory = history;
-
-      // Update the thread with new messages
-      await threadRepository.updateThread(thread.id, conversationHistory);
-
-      // If this is a new thread with the default name and we now have both user input and AI response,
-      // generate a better name based on the conversation content
-      if (
-        thread.name.startsWith("Thread-") &&
-        conversationHistory.length >= 2
-      ) {
-        const userMessage =
-          conversationHistory.find((msg) => msg.role === "user")?.content || "";
-        const aiResponse =
-          conversationHistory.find((msg) => msg.role === "assistant")
-            ?.content || "";
-
-        // Create a name by combining user input and AI response
-        const combinedContent = `${userMessage} ${aiResponse}`;
-        // Trim to max 120 chars and add ellipsis if truncated
-        const truncatedName =
-          combinedContent.length > 120
-            ? `${combinedContent.substring(0, 120).trim()}...`
-            : combinedContent;
-
-        // Update the thread name
-        await threadRepository.renameThread(thread.id, truncatedName);
-      }
-
-      totalUsage.inputTokens += usage.inputTokens;
-      totalUsage.outputTokens += usage.outputTokens;
-
-      // Get next user input if the last message was from the assistant
-      if (
-        conversationHistory[conversationHistory.length - 1].role === "assistant"
-      ) {
+      } else {
         logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 
         const { shouldContinue, input } = await processUserInput();
         if (!shouldContinue) {
           break;
         }
-        if (getShowCostInfo()) {
-          displayCostInfo(totalUsage);
-        }
-        history.push({
+        conversationHistory.push({
           role: "user",
           content: input,
         });

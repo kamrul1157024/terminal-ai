@@ -78,7 +78,6 @@ export class SQLiteThreadRepository implements ThreadRepository {
     try {
       this.db = new Database(dbPath);
       this.initDatabase();
-      logger.info(`Connected to database at ${dbPath}`);
     } catch (error) {
       logger.error(`Failed to connect to database: ${error}`);
       throw error;
@@ -110,8 +109,6 @@ export class SQLiteThreadRepository implements ThreadRepository {
         FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE
       )
     `);
-
-    logger.info("Database initialized successfully");
   }
 
   /**

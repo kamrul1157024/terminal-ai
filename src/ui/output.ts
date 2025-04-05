@@ -4,13 +4,8 @@ import inquirer from "inquirer";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { Thread } from "../repositories";
-/**
- * Displays a list of threads
- */
-export function displayThreadsList(threads: Thread[]) {
-  logger.info(chalk.bold.blue("\n📋 Conversation Threads"));
-  logger.info(chalk.blue("=====================\n"));
 
+export function displayThreadsList(threads: Thread[]) {
   const formattedThreads = formatThreadsForDisplay(threads);
 
   formattedThreads.forEach((thread) => {
@@ -18,9 +13,6 @@ export function displayThreadsList(threads: Thread[]) {
   });
 }
 
-/**
- * Formats thread data for display
- */
 export function formatThreadsForDisplay(threads: Thread[]) {
   return threads.map((thread, index) => {
     const messageCount = thread.messages.length;
@@ -37,35 +29,22 @@ export function formatThreadsForDisplay(threads: Thread[]) {
   });
 }
 
-/**
- * Displays the conversation history of a thread
- */
 export function displayConversationHistory(thread: Thread) {
-  // Print the existing conversation
   if (thread.messages.length > 0) {
-    logger.info(chalk.bold.blue("\nConversation history:"));
-    logger.info(chalk.blue("===================="));
-
-    // Display conversation history
     thread.messages.forEach((message: Message<MessageRole>) => {
-      const role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
       if (message.role === "user") {
-        logger.info(`\n${chalk.green(`${role}:`)} ${message.content}`);
-      } else if (message.role === "assistant") {
-        logger.info(`\n${chalk.yellow(`${role}:`)} ${message.content}`);
+        showUserMessage(message.content);
+        return
+      }
+      if (message.role === "assistant") {
+        showAssistantMessagePrefix();
+        showAssistantMessage(message.content);
+        return
       }
     });
-
-    logger.info(chalk.blue("\n===================="));
-    logger.info(
-      chalk.bold("Continuing conversation. Type your message below:"),
-    );
   }
 }
 
-/**
- * Prompts user to select an action for threads
- */
 export async function promptThreadAction(): Promise<string> {
   const { action } = await inquirer.prompt([
     {
@@ -82,13 +61,9 @@ export async function promptThreadAction(): Promise<string> {
   return action;
 }
 
-/**
- * Prompts user to select a thread
- */
 export async function promptThreadSelection(threads: Thread[]): Promise<string> {
   const formattedThreads = formatThreadsForDisplay(threads);
 
-  // Add SIGINT (Ctrl+C) handler
   process.on("SIGINT", () => {
     logger.info(chalk.yellow("\nOperation cancelled by user. Exiting..."));
     process.exit(0);
@@ -107,4 +82,21 @@ export async function promptThreadSelection(threads: Thread[]): Promise<string> 
   ]);
 
   return selectedThread;
+}
+
+export function showUserMessage(message: string) {
+  logger.info(
+    chalk.bold.cyan("You: ") +
+    chalk.white(message)
+  );
+}
+
+export function showAssistantMessagePrefix() {
+  process.stdout.write(chalk.bold.yellow("LLM: "));
+}
+
+export function showAssistantMessage(message: string) {
+  process.stdout.write(
+    chalk.white(message)
+  );
 }

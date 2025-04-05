@@ -9,6 +9,7 @@ import {
   CompletionOptions,
   TokenUsage,
 } from "../llm/interface";
+import { showAssistantMessagePrefix } from "../ui/output";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
@@ -65,7 +66,10 @@ export class LLM {
     }).start();
 
     const onStreamToken = (token: string) => {
-      spinner.stop();
+      if (spinner.isSpinning) {
+        spinner.stop();
+        showAssistantMessagePrefix();
+      }
       onToken(token);
     };
     const completion = await this.llmProvider.generateStreamingCompletion(
