@@ -134,20 +134,27 @@ export class Logger {
 
   // Special method for command execution
   command(command: string): void {
-    if (this.shouldLog(LogLevel.INFO)) {
-      let message = `>> ${command}`;
+    const commandWithPrompt = `$ ${command}`;
 
-      if (this.parseMarkdown) {
-        message = `\`\`\`bash\n${command}\n\`\`\``;
-        // Parse markdown for command
-        console.log(marked(message));
+    if (this.parseMarkdown) {
+      const message = `\`\`\`bash\n${commandWithPrompt}\n\`\`\`\n`;
+      // Parse markdown for command
+      console.log(marked(message));
+    } else {
+      const formattedMessage = this.formatMessage(LogLevel.INFO, commandWithPrompt);
+      const length = formattedMessage.length + 2; // +2 for side padding
+      const border = '─'.repeat(length);
+      const topBorder = `┌${border}┐`;
+      const bottomBorder = `└${border}┘`;
+
+      if (this.colors) {
+        console.log(`\n${chalk.cyan(topBorder)}`);
+        console.log(`${chalk.cyan('│')} ${chalk.cyan(formattedMessage)} ${chalk.cyan('│')}`);
+        console.log(`${chalk.cyan(bottomBorder)}\n`);
       } else {
-        const formattedMessage = this.formatMessage(LogLevel.INFO, message);
-        if (this.colors) {
-          console.log(chalk.cyan(formattedMessage));
-        } else {
-          console.log(formattedMessage);
-        }
+        console.log(`\n${topBorder}`);
+        console.log(`│ ${formattedMessage} │`);
+        console.log(`${bottomBorder}\n`);
       }
     }
   }

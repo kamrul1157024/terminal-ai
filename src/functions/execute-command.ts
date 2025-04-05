@@ -162,7 +162,7 @@ export const executeCommandHandler = async (args: {
     ]);
 
     if (!confirm) {
-      return { stdout: "", stderr: "Command execution canceled by user." };
+      return { stdout: "", stderr: "User do not want to proceed with this command." };
     }
   }
 

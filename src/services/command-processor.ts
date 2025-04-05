@@ -1,3 +1,4 @@
+import ora from "ora";
 import {
   LLMProvider,
   Message,
@@ -7,6 +8,7 @@ import {
   TokenUsage,
 } from "../llm/interface";
 import { FunctionCallProcessor } from "./functioncall-processor";
+import chalk from "chalk";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
@@ -59,11 +61,25 @@ export class CommandProcessor {
       options.function_call = "auto";
     }
 
+
+    const spinner = ora({
+      text: chalk.yellow('AI Assistant is thinking...'),
+      spinner: 'dots',
+    }).start();
+
+    const onStreamToken = (token: string) => {
+      spinner.stop();
+      onToken(token);
+    }
     const completion = await this.llmProvider.generateStreamingCompletion(
       messages,
-      onToken,
+      onStreamToken,
       options,
     );
+
+    if(spinner.isSpinning) {
+      spinner.stop();
+    }
 
     if (completion.functionCalls && completion.functionCalls.length > 0) {
       history.push({

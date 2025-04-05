@@ -130,6 +130,9 @@ export interface AgentModeOptions {
   threadId?: string;
 }
 
+function printAIResponse(responseText: string) {
+}
+
 export async function runAgentMode({
   input,
   context,
@@ -236,25 +239,21 @@ export async function runAgentMode({
         }
       }
       
-      // Show spinner while waiting for AI response
-      const spinner = ora({
-        text: chalk.yellow('AI Assistant is thinking...'),
-        spinner: 'dots',
-      }).start();
       
-      // Process the command with the LLM
       let responseText = "";
+      
       const { history, usage } = await commandProcessor.processCommand({
         input: userInput,
         onToken: (token: string) => {
           responseText += token;
+          process.stdout.write(chalk.white(token));
           return;
         },
         conversationHistory,
       });
 
-      spinner.stop();
-      console.log(chalk.bold.green("AI: ") + chalk.white(responseText) + "\n");
+      // Add a newline after streaming is complete
+      console.log("\n");
       
       conversationHistory = history;
       
@@ -285,7 +284,6 @@ export async function runAgentMode({
       if (
         conversationHistory[conversationHistory.length - 1].role === "assistant"
       ) {
-        // Show a subtle separator
         console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
         
         const { shouldContinue, input } = await processUserInput();
