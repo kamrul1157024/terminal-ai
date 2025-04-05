@@ -72,20 +72,14 @@ export class FunctionManager {
       };
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(
-          `Error executing function ${functionCall.name}:`,
-          error.message,
-        );
+        logger.error(`Error executing function ${functionCall.name}: ${error.message}`);
         return {
           name: functionCall.name,
           error: error.message,
           callId: functionCall.callId,
         };
       } else {
-        console.error(
-          `Error executing function ${functionCall.name}:`,
-          String(error),
-        );
+        logger.error(`Error executing function ${functionCall.name}: ${String(error)}`);
         return {
           name: functionCall.name,
           error: String(error),

@@ -1,4 +1,4 @@
-import { exec, ExecOptions } from "child_process";
+import { exec, spawn } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 
@@ -9,6 +9,7 @@ import { logger } from "../../logger";
 import { isSystemQueryingCommand } from "../../utils";
 import { getAutoApprove } from "../../utils/context-vars";
 import { LLMFunction } from "../types";
+import { terminalError, terminalOutput } from "../../ui/output";
 
 const execPromise = promisify(exec);
 let defaultShell: string | null = null;
@@ -46,23 +47,55 @@ const getDefaultShell = async (): Promise<string> => {
   }
 };
 
+async function spawnCommand(
+  command: string,
+  args: string[],
+  shell: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      shell,
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      const output = data.toString();
+      stdout += output;
+      terminalOutput(output);
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const error = data.toString();
+      stderr += error;
+      terminalError(error);
+    });
+
+    child.on('close', (code: number) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        reject(new Error(`Command failed with code ${code}`));
+      }
+    });
+
+    child.on('error', (error: Error) => {
+      reject(error);
+    });
+  });
+}
+
 async function executeCommand(
   command: string,
   requiresSudo: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
   try {
-    console.log("executeCommand---", command);
     const formattedCommand = command.trim();
-
     const platform = os.platform();
     const isWindows = platform === "win32";
-
     const shell = await getDefaultShell();
-
-    const execOptions: ExecOptions = {
-      shell,
-      maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
-    };
 
     let executableCommand = formattedCommand;
 
@@ -77,20 +110,15 @@ async function executeCommand(
           .replace(/"/g, '`"')
           .replace(/`/g, "``");
       } else {
-        // For Unix shells (bash/zsh)
-        // Escape backticks first before other processing
         executableCommand = formattedCommand.replace(/`/g, "\\`");
-
-        // Simple technique - if we find a quoted string with newlines inside, fix just that part
         const quotedStringRegex = /(['"])((?:\\\1|(?!\1).)*?)(\1)/g;
         executableCommand = executableCommand.replace(
           quotedStringRegex,
           (match, quote, content) => {
             if (content.includes("\n") || content.includes("'")) {
-              // Replace the quoted content with a $'' escaped version if it contains newlines or quotes
               return `$'${content.replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`;
             }
-            return match; // Leave it unchanged if no newlines
+            return match;
           },
         );
       }
@@ -104,24 +132,12 @@ async function executeCommand(
             "Administrator privileges are required. Please run this command manually with admin rights.",
         };
       } else {
-        // Unix-based systems use sudo
-        const { stdout, stderr } = await execPromise(
-          `sudo ${executableCommand}`,
-          execOptions,
-        );
-        return { stdout, stderr };
+        return spawnCommand('sudo', [executableCommand], shell);
       }
     }
 
     // Regular command execution (no sudo)
-    console.log("executableCommand--", executableCommand);
-    const { stdout, stderr } = await execPromise(
-      executableCommand,
-      execOptions,
-    );
-    console.log("stdout--", stdout);
-    console.log("stderr--", stderr);
-    return { stdout, stderr };
+    return spawnCommand(executableCommand, [], shell);
   } catch (error) {
     if (error instanceof Error) {
       return { stdout: "", stderr: `Command failed: ${error.message}` };
@@ -158,8 +174,6 @@ export const executeCommandHandler = async (args: {
     if (stderr) {
       logger.error(`Command error: ${stderr}`);
     }
-
-    logger.info(stdout);
     return { stdout, stderr };
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code !== 0) {

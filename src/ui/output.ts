@@ -129,3 +129,11 @@ export function showAssistantMessage(message: string) {
   }
   process.stdout.write(chalk.white(message));
 }
+
+export function terminalOutput(message: string) {
+  process.stdout.write(chalk.blue(message));
+}
+
+export function terminalError(message: string) {
+  process.stderr.write(chalk.red(message));
+}
