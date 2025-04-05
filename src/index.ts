@@ -2,9 +2,8 @@
 
 import { Command } from "commander";
 import { initCommand } from "./commands/init";
-import * as threadManager from "./thread-manager";
 import * as inputProcessor from "./input-processor";
-
+import { ThreadManager } from "./services";
 // Package version from package.json
 const packageJson = require("../package.json");
 
@@ -54,7 +53,7 @@ function setupThreadCommands(program: Command) {
     .description("List all conversation threads")
     .option("-f, --filter <name>", "Filter threads by name")
     .action(async (options) => {
-      await threadManager.listThreads(options);
+      await ThreadManager.listThreads(options);
     });
 
   // Add thread delete command
@@ -62,7 +61,7 @@ function setupThreadCommands(program: Command) {
     .command("delete <thread-id>")
     .description("Delete a specific conversation thread")
     .action(async (threadId: string) => {
-      await threadManager.deleteThread(threadId);
+      await ThreadManager.deleteThread(threadId);
     });
 
   // Add thread attach command
@@ -70,7 +69,7 @@ function setupThreadCommands(program: Command) {
     .command("attach <thread-id>")
     .description("Attach to an existing conversation thread")
     .action(async (threadId: string) => {
-      await threadManager.attachToThread(threadId);
+      await ThreadManager.attachToThread(threadId);
     });
 
   // Add thread rename command
@@ -78,7 +77,7 @@ function setupThreadCommands(program: Command) {
     .command("rename <thread-id> <new-name>")
     .description("Rename an existing conversation thread")
     .action(async (threadId: string, newName: string) => {
-      await threadManager.renameThread(threadId, newName);
+      await ThreadManager.renameThread(threadId, newName);
     });
 }
 

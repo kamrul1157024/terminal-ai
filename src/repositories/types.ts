@@ -8,7 +8,7 @@ export interface Thread {
   messages: Message<MessageRole>[];
 }
 
-export interface SessionManager {
+export interface ThreadRepository {
   /**
    * Creates a new thread
    */

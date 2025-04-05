@@ -1,5 +1,4 @@
 import { createLLMProvider } from "../llm";
-import { CommandProcessor } from "../services";
 import {
   executeCommandFunction,
   executeCommandHandler,
@@ -8,9 +7,10 @@ import {
 } from "../functions";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../utils/logger";
-import { FunctionCallProcessor } from "../services/functioncall-processor";
+import { FunctionManager } from "../functions/manager";
 import { displayCostInfo } from "../utils/pricing-calculator";
 import { getShowCostInfo } from "../utils/context-vars";
+import { LLM } from "../services/llm";
 
 const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.`;
 
@@ -31,21 +31,21 @@ export async function processAiCommand(
     }
 
     const llmProvider = createLLMProvider();
-    const functionCallProcessor = new FunctionCallProcessor();
-    functionCallProcessor.registerFunction(
+    const functionManager = new FunctionManager();
+    functionManager.registerFunction(
       getSystemInfoFunction,
       getSystemInfoHandler,
     );
 
-    functionCallProcessor.registerFunction(
+    functionManager.registerFunction(
       executeCommandFunction,
       executeCommandHandler,
     );
 
-    const commandProcessor = new CommandProcessor({
+    const llm = new LLM({
       llmProvider,
       systemPrompt: context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT,
-      functionCallProcessor,
+      functionManager,
     });
 
     const history: Message<MessageRole>[] = [];
@@ -56,7 +56,7 @@ export async function processAiCommand(
       });
     }
 
-    const { usage } = await commandProcessor.processCommand({
+    const { usage } = await llm.generateStreamingCompletion({
       input,
       onToken: (token: string) => process.stdout.write(token),
       conversationHistory: history,

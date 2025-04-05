@@ -2,12 +2,9 @@ import {
   FunctionCallResult,
   FunctionDefinition,
   FunctionHandler,
-  LLMProvider,
-  Message,
-  MessageRole,
 } from "../llm/interface";
 
-export class FunctionCallProcessor {
+export class FunctionManager {
   private functions: FunctionDefinition[] = [];
   private functionHandlers: Map<string, FunctionHandler> = new Map();
 

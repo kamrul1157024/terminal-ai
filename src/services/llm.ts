@@ -7,7 +7,7 @@ import {
   FunctionCallResponse,
   TokenUsage,
 } from "../llm/interface";
-import { FunctionCallProcessor } from "./functioncall-processor";
+import { FunctionManager } from "../functions/manager";
 import chalk from "chalk";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
@@ -16,26 +16,26 @@ const DEFAULT_TERMINAL_SYSTEM_PROMPT =
 
 export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
 
-export class CommandProcessor {
+export class LLM {
   private llmProvider: LLMProvider;
   private systemPrompt: string;
-  private functionCallProcessor: FunctionCallProcessor;
+  private functionManager: FunctionManager;
 
   constructor({
     llmProvider,
     systemPrompt = DEFAULT_TERMINAL_SYSTEM_PROMPT,
-    functionCallProcessor = new FunctionCallProcessor(),
+    functionManager = new FunctionManager(),
   }: {
     llmProvider: LLMProvider;
     systemPrompt?: string;
-    functionCallProcessor?: FunctionCallProcessor;
+    functionManager?: FunctionManager;
   }) {
     this.llmProvider = llmProvider;
     this.systemPrompt = systemPrompt;
-    this.functionCallProcessor = functionCallProcessor;
+    this.functionManager = functionManager;
   }
 
-  async processCommand({
+  async generateStreamingCompletion({
     input,
     onToken,
     conversationHistory,
@@ -56,8 +56,8 @@ export class CommandProcessor {
     ];
 
     const options: CompletionOptions = {};
-    if (this.functionCallProcessor.getFunctions().length > 0) {
-      options.functions = this.functionCallProcessor.getFunctions();
+    if (this.functionManager.getFunctions().length > 0) {
+      options.functions = this.functionManager.getFunctions();
       options.function_call = "auto";
     }
 
@@ -88,8 +88,8 @@ export class CommandProcessor {
 
       const results = await Promise.all(
         completion.functionCalls.map(
-          this.functionCallProcessor.handleFunctionCall.bind(
-            this.functionCallProcessor,
+          this.functionManager.handleFunctionCall.bind(
+            this.functionManager,
           ),
         ),
       );

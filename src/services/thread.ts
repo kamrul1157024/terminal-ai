@@ -1,22 +1,22 @@
-import { SQLiteSessionManager } from "./session-manager";
-import { logger } from "./utils/logger";
-import { runAgentMode } from "./commands/agent";
+import { logger } from "../utils/logger";
+import { runAgentMode } from "../commands/agent";
 import {
   runWithContext,
   setAutoApprove,
   setCostTracker,
   setShowCostInfo,
-} from "./utils/context-vars";
-import { CumulativeCostTracker } from "./utils/pricing-calculator";
-import * as ui from "./ui";
+} from "../utils/context-vars";
+import { CumulativeCostTracker } from "../utils/pricing-calculator";
+import * as ui from "../ui";
+import { SQLiteThreadRepository } from "../repositories";
 
 /**
  * Lists all threads in the system
  */
 export async function listThreads(options: { filter?: string }) {
   try {
-    const sessionManager = new SQLiteSessionManager();
-    const threads = await sessionManager.listThreads();
+    const threadRepository = new SQLiteThreadRepository();
+    const threads = await threadRepository.listThreads();
 
     if (threads.length === 0) {
       logger.info("No threads found.");
@@ -89,15 +89,15 @@ async function handleThreadSelection(
  * Deletes a thread by ID
  */
 export async function deleteThread(threadId: string) {
-  const sessionManager = new SQLiteSessionManager();
-  const thread = await sessionManager.getThread(threadId);
+  const threadRepository = new SQLiteThreadRepository();
+  const thread = await threadRepository.getThread(threadId);
 
   if (!thread) {
     logger.error(`Thread with ID ${threadId} not found.`);
     return;
   }
 
-  const result = await sessionManager.deleteThread(threadId);
+  const result = await threadRepository.deleteThread(threadId);
   if (result) {
     logger.info(
       `Thread "${thread.name}" (ID: ${threadId}) deleted successfully.`,
@@ -111,8 +111,8 @@ export async function deleteThread(threadId: string) {
  * Attaches to an existing thread
  */
 export async function attachToThread(threadId: string) {
-  const sessionManager = new SQLiteSessionManager();
-  const thread = await sessionManager.getThread(threadId);
+  const threadRepository = new SQLiteThreadRepository();
+  const thread = await threadRepository.getThread(threadId);
 
   if (!thread) {
     logger.error(`Thread with ID ${threadId} not found.`);
@@ -145,8 +145,8 @@ async function startAgentModeWithThread(threadId: string) {
  * Renames a thread
  */
 export async function renameThread(threadId: string, newName: string) {
-  const sessionManager = new SQLiteSessionManager();
-  const thread = await sessionManager.getThread(threadId);
+  const threadRepository = new SQLiteThreadRepository();
+  const thread = await threadRepository.getThread(threadId);
 
   if (!thread) {
     logger.error(`Thread with ID ${threadId} not found.`);
@@ -155,7 +155,10 @@ export async function renameThread(threadId: string, newName: string) {
 
   try {
     const oldName = thread.name;
-    const updatedThread = await sessionManager.renameThread(threadId, newName);
+    const updatedThread = await threadRepository.renameThread(
+      threadId,
+      newName,
+    );
     logger.info(
       `Thread renamed from "${oldName}" to "${updatedThread.name}" (ID: ${threadId}).`,
     );

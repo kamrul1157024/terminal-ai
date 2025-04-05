@@ -1,1 +1,2 @@
-export { CommandProcessor, FunctionHandler } from "./command-processor";
+export { LLM } from "./llm";
+export * as  ThreadManager from "./thread";

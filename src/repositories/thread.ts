@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { SessionManager, Thread } from "./interfaces";
+import { ThreadRepository, Thread } from "./types";
 import {
   Message,
   MessageRole,
@@ -69,7 +69,7 @@ class MessageSerializer {
   }
 }
 
-export class SQLiteSessionManager implements SessionManager {
+export class SQLiteThreadRepository implements ThreadRepository {
   private db: Database.Database;
 
   constructor(baseDir: string = ".terminal-ai-sessions") {

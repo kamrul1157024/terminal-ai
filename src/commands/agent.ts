@@ -2,22 +2,23 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import os from "os";
 import { createLLMProvider } from "../llm";
-import { CommandProcessor } from "../services";
-import { MessageRole, Message, TokenUsage } from "../llm/interface";
+import { TokenUsage } from "../llm/interface";
 import {
   getSystemInfoFunction,
   getSystemInfoHandler,
   executeCommandFunction,
   executeCommandHandler,
 } from "../functions";
-import { FunctionCallProcessor } from "../services/functioncall-processor";
+import { FunctionManager } from "../functions/manager";
 import {
   CumulativeCostTracker,
   displayCostInfo,
 } from "../utils/pricing-calculator";
 import { logger } from "../utils/logger";
 import { getShowCostInfo } from "../utils/context-vars";
-import { SQLiteSessionManager, Thread } from "../session-manager";
+import {  Thread } from "../repositories";
+import { SQLiteThreadRepository } from "../repositories";
+import { LLM } from "../services/llm";
 
 const costTracker = new CumulativeCostTracker();
 
@@ -133,12 +134,12 @@ export async function runAgentMode({
   threadId,
 }: AgentModeOptions): Promise<void> {
   try {
-    const functionCallProcessor = new FunctionCallProcessor();
-    functionCallProcessor.registerFunction(
+    const functionManager = new FunctionManager();
+    functionManager.registerFunction(
       executeCommandFunction,
       executeCommandHandler,
     );
-    functionCallProcessor.registerFunction(
+    functionManager.registerFunction(
       getSystemInfoFunction,
       getSystemInfoHandler,
     );
@@ -153,24 +154,24 @@ export async function runAgentMode({
     );
 
     const llmProvider = createLLMProvider();
-    const commandProcessor = new CommandProcessor({
+    const llm = new LLM({
       llmProvider,
       systemPrompt: AGENT_SYSTEM_PROMPT,
-      functionCallProcessor,
+      functionManager,
     });
 
     // Initialize the session manager
-    const sessionManager = new SQLiteSessionManager();
+    const threadRepository = new SQLiteThreadRepository();
 
     // Initialize or load thread
     let thread: Thread;
     if (threadId) {
-      const existingThread = await sessionManager.getThread(threadId);
+      const existingThread = await threadRepository.getThread(threadId);
       if (!existingThread) {
         logger.info(
           `Thread with ID ${threadId} not found. Creating a new thread.`,
         );
-        thread = await sessionManager.createThread();
+        thread = await threadRepository.createThread();
       } else {
         thread = existingThread;
         logger.info(
@@ -180,7 +181,7 @@ export async function runAgentMode({
         );
       }
     } else {
-      thread = await sessionManager.createThread();
+      thread = await threadRepository.createThread();
       logger.info(
         chalk.blue(
           `Created new thread: ${chalk.bold(thread.name)} (${thread.id})`,
@@ -229,7 +230,7 @@ export async function runAgentMode({
 
     // Update the thread with the messages
     if (conversationHistory.length > thread.messages.length) {
-      await sessionManager.updateThread(thread.id, conversationHistory);
+      await threadRepository.updateThread(thread.id, conversationHistory);
     }
 
     const totalUsage: TokenUsage = {
@@ -253,7 +254,7 @@ export async function runAgentMode({
 
       let responseText = "";
 
-      const { history, usage } = await commandProcessor.processCommand({
+      const { history, usage } = await llm.generateStreamingCompletion({
         input: userInput,
         onToken: (token: string) => {
           responseText += token;
@@ -269,7 +270,7 @@ export async function runAgentMode({
       conversationHistory = history;
 
       // Update the thread with new messages
-      await sessionManager.updateThread(thread.id, conversationHistory);
+      await threadRepository.updateThread(thread.id, conversationHistory);
 
       // If this is a new thread with the default name and we now have both user input and AI response,
       // generate a better name based on the conversation content
@@ -292,7 +293,7 @@ export async function runAgentMode({
             : combinedContent;
 
         // Update the thread name
-        await sessionManager.renameThread(thread.id, truncatedName);
+        await threadRepository.renameThread(thread.id, truncatedName);
       }
 
       totalUsage.inputTokens += usage.inputTokens;
