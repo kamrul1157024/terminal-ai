@@ -6,7 +6,7 @@ import { logger } from "./utils/logger";
 import "./utils/model-config"; // Ensure model config is loaded
 import {
   runWithContext,
-  setAutopilot,
+  setAutoApprove,
   setCostTracker,
   setShowCostInfo,
 } from "./utils/context-vars";
@@ -67,7 +67,7 @@ async function ensureConfigured() {
  * Sets up context variables for the AI session
  */
 function setupContextVariables(options: any) {
-  setAutopilot(options.autopilot);
+  setAutoApprove(options.autopilot);
   setCostTracker(new CumulativeCostTracker());
   setShowCostInfo(options.cost);
 }

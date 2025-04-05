@@ -15,22 +15,22 @@ function runWithContext<T>(
   initialStore: Partial<Store> = {},
 ): T {
   const store = {
-    autopilot: false,
+    autoApprove: false,
     showCostInfo: true,
     ...initialStore,
   } as Store;
   return contextVars.run(store, callback);
 }
 
-function setAutopilot(autopilot: boolean) {
+function setAutoApprove(autoApprove: boolean) {
   const store = contextVars.getStore();
   if (store) {
-    store.autopilot = autopilot;
+    store.autoApprove = autoApprove;
   }
 }
 
-function getAutopilot(): boolean | undefined {
-  return contextVars.getStore()?.autopilot;
+function getAutoApprove(): boolean | undefined {
+  return contextVars.getStore()?.autoApprove;
 }
 
 function getCostTracker(): CumulativeCostTracker | undefined {
@@ -56,8 +56,8 @@ function getShowCostInfo(): boolean | undefined {
 }
 
 export {
-  setAutopilot,
-  getAutopilot,
+  setAutoApprove,
+  getAutoApprove,
   runWithContext,
   setCostTracker,
   getCostTracker,
