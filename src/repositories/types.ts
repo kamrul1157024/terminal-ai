@@ -6,7 +6,7 @@ export type Thread = {
   createdAt: Date;
   updatedAt: Date;
   messages: Message<MessageRole>[];
-}
+};
 
 export interface ThreadRepository {
   /**

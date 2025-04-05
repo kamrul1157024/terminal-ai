@@ -3,19 +3,13 @@ import os from "os";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { ExecuteCommand } from "../functions";
-import { FunctionManager } from "../functions/manager";
+import { FunctionDefinitions, FunctionManager } from "../functions";
 import { createLLMProvider } from "../llm";
-import { TokenUsage } from "../llm/interface";
 import { logger } from "../logger";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
-import {
-  CumulativeCostTracker,
-  displayCostInfo,
-} from "../services/pricing";
-import { getShowCostInfo } from "../utils/context-vars";
+import { CumulativeCostTracker } from "../services/pricing";
 import { showAssistantMessage, showUserMessage } from "../ui/output";
 const costTracker = new CumulativeCostTracker();
 
@@ -130,10 +124,7 @@ export async function runAgentMode({
 }: AgentModeOptions): Promise<void> {
   try {
     const functionManager = new FunctionManager();
-    functionManager.registerFunction(
-      ExecuteCommand.executeCommandFunction,
-      ExecuteCommand.executeCommandHandler,
-    );
+    functionManager.registerFunction(FunctionDefinitions.commandExecutor);
 
     const systemInfo = getSystemInfoFromOS();
 
@@ -233,7 +224,8 @@ export async function runAgentMode({
           conversationHistory.length >= 2
         ) {
           const userMessage =
-            conversationHistory.find((msg) => msg.role === "user")?.content || "";
+            conversationHistory.find((msg) => msg.role === "user")?.content ||
+            "";
           const aiResponse =
             conversationHistory.find((msg) => msg.role === "assistant")
               ?.content || "";
@@ -251,7 +243,6 @@ export async function runAgentMode({
         }
 
         costTracker.addUsage(usage);
-
       } else {
         logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 

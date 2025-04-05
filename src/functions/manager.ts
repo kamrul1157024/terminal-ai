@@ -1,8 +1,25 @@
+import { ZodTypeAny } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
 import {
   FunctionCallResult,
   FunctionDefinition,
   FunctionHandler,
 } from "../llm/interface";
+
+import { LLMFunction } from "./types";
+function getFunctionDefinition<T extends ZodTypeAny>(
+  functionDefinition: LLMFunction<T>,
+): FunctionDefinition {
+  return {
+    name: functionDefinition.name,
+    description: functionDefinition.description,
+    parameters:
+      zodToJsonSchema(functionDefinition.args, "arguments")["definitions"]?.[
+        "arguments"
+      ] || {},
+  };
+}
 
 export class FunctionManager {
   private functions: FunctionDefinition[] = [];
@@ -13,12 +30,9 @@ export class FunctionManager {
     this.functions = [];
   }
 
-  registerFunction(
-    definition: FunctionDefinition,
-    handler: FunctionHandler,
-  ): void {
-    this.functions.push(definition);
-    this.functionHandlers.set(definition.name, handler);
+  registerFunction<T extends ZodTypeAny>(definition: LLMFunction<T>): void {
+    this.functions.push(getFunctionDefinition(definition));
+    this.functionHandlers.set(definition.name, definition.handler);
   }
 
   getFunctions(): FunctionDefinition[] {

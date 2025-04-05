@@ -34,12 +34,12 @@ export function displayConversationHistory(thread: Thread) {
     thread.messages.forEach((message: Message<MessageRole>) => {
       if (message.role === "user") {
         showUserMessage(message.content);
-        return
+        return;
       }
       if (message.role === "assistant") {
         showAssistantMessagePrefix();
         showAssistantMessage(message.content);
-        return
+        return;
       }
     });
   }
@@ -61,7 +61,9 @@ export async function promptThreadAction(): Promise<string> {
   return action;
 }
 
-export async function promptThreadSelection(threads: Thread[]): Promise<string> {
+export async function promptThreadSelection(
+  threads: Thread[],
+): Promise<string> {
   const formattedThreads = formatThreadsForDisplay(threads);
 
   process.on("SIGINT", () => {
@@ -85,10 +87,7 @@ export async function promptThreadSelection(threads: Thread[]): Promise<string> 
 }
 
 export function showUserMessage(message: string) {
-  logger.info(
-    chalk.bold.cyan("You: ") +
-    chalk.white(message)
-  );
+  logger.info(chalk.bold.cyan("You: ") + chalk.white(message));
 }
 
 export function showAssistantMessagePrefix() {
@@ -96,7 +95,5 @@ export function showAssistantMessagePrefix() {
 }
 
 export function showAssistantMessage(message: string) {
-  process.stdout.write(
-    chalk.white(message)
-  );
+  process.stdout.write(chalk.white(message));
 }

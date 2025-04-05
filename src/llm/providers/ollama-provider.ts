@@ -40,12 +40,20 @@ export class OllamaProvider implements LLMProvider {
   }
 
   private mapToOllamaMessages(
-    messages: Message<MessageRole>[]
+    messages: Message<MessageRole>[],
   ): { role: string; content: string; images?: string[] }[] {
-    const ollamaMessages: { role: string; content: string; images?: string[] }[] = [];
-    
+    const ollamaMessages: {
+      role: string;
+      content: string;
+      images?: string[];
+    }[] = [];
+
     messages.forEach((msg) => {
-      if (msg.role === "user" || msg.role === "system" || msg.role === "assistant") {
+      if (
+        msg.role === "user" ||
+        msg.role === "system" ||
+        msg.role === "assistant"
+      ) {
         ollamaMessages.push({
           role: msg.role,
           content: msg.content as string,
@@ -67,7 +75,7 @@ export class OllamaProvider implements LLMProvider {
           })),
         });
       }
-      
+
       // Handle function calls and results if needed
       if (msg.role === "function") {
         msg.content.forEach((call) => {
@@ -96,8 +104,15 @@ export class OllamaProvider implements LLMProvider {
   }
 
   private mapToOllamaTools(
-    functions: FunctionDefinition[]
-  ): Array<{ type: string; function: { name: string; description: string; parameters: Record<string, unknown> } }> {
+    functions: FunctionDefinition[],
+  ): Array<{
+    type: string;
+    function: {
+      name: string;
+      description: string;
+      parameters: Record<string, unknown>;
+    };
+  }> {
     return functions.map((func) => ({
       type: "function",
       function: {
@@ -111,17 +126,26 @@ export class OllamaProvider implements LLMProvider {
   async generateStreamingCompletion(
     messages: Message<MessageRole>[],
     onToken: (token: string) => void,
-    options?: CompletionOptions
+    options?: CompletionOptions,
   ): Promise<CompletionResult> {
     try {
       const ollamaMessages = this.mapToOllamaMessages(messages);
-      const ollamaTools = options?.functions ? this.mapToOllamaTools(options.functions) : [];
+      const ollamaTools = options?.functions
+        ? this.mapToOllamaTools(options.functions)
+        : [];
 
       const requestBody: {
         model: string;
         messages: { role: string; content: string; images?: string[] }[];
         stream: boolean;
-        tools?: Array<{ type: string; function: { name: string; description: string; parameters: Record<string, unknown> } }>;
+        tools?: Array<{
+          type: string;
+          function: {
+            name: string;
+            description: string;
+            parameters: Record<string, unknown>;
+          };
+        }>;
         options?: OllamaOptions;
       } = {
         model: this.model,
@@ -136,53 +160,57 @@ export class OllamaProvider implements LLMProvider {
       // Add custom Ollama options if needed
       if (options) {
         requestBody.options = {};
-        
+
         // Add temperature if available through custom extension
-        if ('temperature' in options) {
+        if ("temperature" in options) {
           requestBody.options.temperature = options.temperature as number;
         }
       }
-      
+
       logger.debug(`Sending request to Ollama API at ${this.baseUrl}/api/chat`);
       logger.debug(`Using model: ${this.model}`);
 
-      const response = await axios.post(`${this.baseUrl}/api/chat`, requestBody, {
-        responseType: 'stream'
-      });
+      const response = await axios.post(
+        `${this.baseUrl}/api/chat`,
+        requestBody,
+        {
+          responseType: "stream",
+        },
+      );
 
       let fullContent = "";
       let functionCalls: FunctionCallResult[] = [];
 
       // Handle streaming response
       const stream = response.data as NodeJS.ReadableStream;
-      
+
       return new Promise((resolve, reject) => {
-        let responseBuffer = '';
-        
-        stream.on('data', (chunk: Buffer) => {
+        let responseBuffer = "";
+
+        stream.on("data", (chunk: Buffer) => {
           const chunkStr = chunk.toString();
           responseBuffer += chunkStr;
-          
+
           // Process complete JSON objects from the buffer
           let startIdx = 0;
           let endIdx: number;
-          
-          while ((endIdx = responseBuffer.indexOf('\n', startIdx)) !== -1) {
+
+          while ((endIdx = responseBuffer.indexOf("\n", startIdx)) !== -1) {
             const jsonStr = responseBuffer.substring(startIdx, endIdx).trim();
             startIdx = endIdx + 1;
-            
+
             if (jsonStr) {
               try {
                 const data = JSON.parse(jsonStr);
-                
+
                 if (data.message?.content) {
                   onToken(data.message.content);
                   fullContent += data.message.content;
                 }
-                
+
                 if (data.message?.tool_calls) {
                   functionCalls = data.message.tool_calls.map(
-                    this.mapOllamaToolsToFunctionCall
+                    this.mapOllamaToolsToFunctionCall,
                   );
                 }
               } catch {
@@ -190,59 +218,63 @@ export class OllamaProvider implements LLMProvider {
               }
             }
           }
-          
+
           // Keep the remaining part that might be an incomplete JSON
           responseBuffer = responseBuffer.substring(startIdx);
         });
-        
-        stream.on('end', () => {
+
+        stream.on("end", () => {
           const result: CompletionResult = { content: fullContent };
-          
+
           if (functionCalls.length > 0) {
             result.functionCalls = functionCalls;
           }
-          
+
           const usage: TokenUsage = {
             inputTokens: this.estimateInputTokens(messages),
             outputTokens: countTokens(fullContent, this.model),
             model: this.model,
           };
-          
+
           result.usage = usage;
           resolve(result);
         });
-        
-        stream.on('error', (err: Error) => {
-          reject(new Error(`Failed to generate streaming completion with Ollama: ${err.message}`));
+
+        stream.on("error", (err: Error) => {
+          reject(
+            new Error(
+              `Failed to generate streaming completion with Ollama: ${err.message}`,
+            ),
+          );
         });
       });
     } catch (error: unknown) {
       if (error instanceof Error) {
         // Check if it's an Axios error by checking for response property
-        if (error && typeof error === 'object' && 'response' in error) {
-          const axiosError = error as { 
-            response?: { 
-              status?: number; 
+        if (error && typeof error === "object" && "response" in error) {
+          const axiosError = error as {
+            response?: {
+              status?: number;
               data?: unknown;
               statusText?: string;
-            }; 
-            message: string 
+            };
+            message: string;
           };
-          
+
           // Handle Axios errors with more detail
           const statusCode = axiosError.response?.status;
           const statusText = axiosError.response?.statusText;
           const errorMessage = axiosError.message;
-          
+
           // Safely handle response data to avoid circular reference errors
-          let responseStr = '';
+          let responseStr = "";
           try {
             const responseData = axiosError.response?.data;
             if (responseData) {
               // Handle different types of response data
-              if (typeof responseData === 'string') {
+              if (typeof responseData === "string") {
                 responseStr = `\nResponse: ${responseData}`;
-              } else if (typeof responseData === 'object') {
+              } else if (typeof responseData === "object") {
                 // Use a safer approach with try/catch for objects
                 try {
                   responseStr = `\nResponse: ${JSON.stringify(responseData)}`;
@@ -254,9 +286,9 @@ export class OllamaProvider implements LLMProvider {
           } catch {
             responseStr = `\nResponse: [Error accessing response data]`;
           }
-          
+
           // Add diagnostic info for common error codes
-          let diagnosticInfo = '';
+          let diagnosticInfo = "";
           if (statusCode === 400) {
             diagnosticInfo = `\n\nPossible causes for 400 Bad Request:
 - Invalid model name '${this.model}'. Make sure the model is downloaded via 'ollama pull <model>'
@@ -273,14 +305,18 @@ Try checking:
           } else if (statusCode === 500) {
             diagnosticInfo = `\n\nOllama server encountered an internal error. Check the Ollama server logs for more details.`;
           }
-          
+
           throw new Error(
-            `Ollama API error (${statusCode} ${statusText || ''}): ${errorMessage}${responseStr}${diagnosticInfo}`
+            `Ollama API error (${statusCode} ${statusText || ""}): ${errorMessage}${responseStr}${diagnosticInfo}`,
           );
         }
-        throw new Error(`Failed to generate streaming completion with Ollama: ${error.message}`);
+        throw new Error(
+          `Failed to generate streaming completion with Ollama: ${error.message}`,
+        );
       }
-      throw new Error(`Failed to generate streaming completion with Ollama: Unknown error`);
+      throw new Error(
+        `Failed to generate streaming completion with Ollama: Unknown error`,
+      );
     }
   }
 
@@ -310,4 +346,4 @@ Try checking:
 
     return totalTokens;
   }
-} 
+}

@@ -63,9 +63,7 @@ export async function listThreads(options: { filter?: string }) {
 /**
  * Handles thread selection process
  */
-async function handleThreadSelection(
-  displayedThreads: Thread[],
-) {
+async function handleThreadSelection(displayedThreads: Thread[]) {
   try {
     const selectedThreadId =
       await Output.promptThreadSelection(displayedThreads);

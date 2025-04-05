@@ -1,5 +1,4 @@
-import { ExecuteCommand } from "../functions";
-import { FunctionManager } from "../functions/manager";
+import { FunctionDefinitions, FunctionManager } from "../functions";
 import { createLLMProvider } from "../llm";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
@@ -28,10 +27,7 @@ export async function processAiCommand(
     const llmProvider = createLLMProvider();
     const functionManager = new FunctionManager();
 
-    functionManager.registerFunction(
-      ExecuteCommand.executeCommandFunction,
-      ExecuteCommand.executeCommandHandler,
-    );
+    functionManager.registerFunction(FunctionDefinitions.commandExecutor);
 
     const llm = new LLM({
       llmProvider,

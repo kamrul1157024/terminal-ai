@@ -14,18 +14,18 @@ export type FunctionCallResponse = {
 
 export type Message<T extends MessageRole> = T extends "function"
   ? {
-    role: T;
-    content: FunctionCallResponse[];
-  }
+      role: T;
+      content: FunctionCallResponse[];
+    }
   : T extends "function_call"
-  ? {
-    role: T;
-    content: FunctionCallResult[];
-  }
-  : {
-    role: T;
-    content: string;
-  };
+    ? {
+        role: T;
+        content: FunctionCallResult[];
+      }
+    : {
+        role: T;
+        content: string;
+      };
 
 export type FunctionParameter = {
   type: string;
@@ -39,11 +39,13 @@ export type FunctionParameter = {
 export type FunctionDefinition = {
   name: string;
   description: string;
-  parameters: {
-    type: "object";
-    properties: Record<string, FunctionParameter>;
-    required?: string[];
-  };
+  parameters:
+    | {
+        type: "object";
+        properties: Record<string, FunctionParameter>;
+        required?: string[];
+      }
+    | {};
 };
 
 export type FunctionCallResult = {

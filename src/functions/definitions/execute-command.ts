@@ -3,32 +3,14 @@ import * as os from "os";
 import { promisify } from "util";
 
 import inquirer from "inquirer";
+import { z } from "zod";
 
-import { FunctionDefinition } from "../llm/interface";
-import { logger } from "../logger";
-import { isSystemQueryingCommand } from "../utils";
-import { getAutoApprove } from "../utils/context-vars";
-
+import { logger } from "../../logger";
+import { isSystemQueryingCommand } from "../../utils";
+import { getAutoApprove } from "../../utils/context-vars";
+import { LLMFunction } from "../types";
 
 const execPromise = promisify(exec);
-
-export const executeCommandFunction: FunctionDefinition = {
-  name: "execute_command",
-  description: "Execute a terminal command and return the result",
-  parameters: {
-    type: "object",
-    properties: {
-      command: {
-        type: "string",
-        description:
-          "The terminal command to execute with shell try to return in single line",
-      },
-    },
-    required: ["command"],
-  },
-};
-
-// Detect default shell once at module level
 let defaultShell: string | null = null;
 
 // Function to get the user's default shell
@@ -208,4 +190,24 @@ export const executeCommandHandler = async (args: {
       stderr: `Trying to run command with sudo but user denied.`,
     };
   }
+};
+
+const ArgumentsSchema = z.object({
+  command: z.string({
+    description:
+      "The terminal command to execute with shell try to return in single line",
+  }),
+});
+
+export const commandExecutor: LLMFunction<typeof ArgumentsSchema> = {
+  name: "execute_command",
+  description: "Execute a terminal command and return the result",
+  args: ArgumentsSchema,
+  handler: async ({ command }) => {
+    const { stdout, stderr } = await executeCommandHandler({ command });
+    return { data: stdout, error: stderr };
+  },
+  render: ({ command }) => {
+    return `Executing command: ${command}`;
+  },
 };

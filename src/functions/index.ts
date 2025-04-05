@@ -1,2 +1,2 @@
-export * as ExecuteCommand from "./execute-command";
-export * as FunctionManager from "./manager";
+export { FunctionManager } from "./manager";
+export * as FunctionDefinitions from "./definitions";

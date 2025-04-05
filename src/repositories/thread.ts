@@ -14,7 +14,7 @@ type ThreadRow = {
   name: string;
   created_at: string;
   updated_at: string;
-}
+};
 
 type MessageRow = {
   id: string;
@@ -22,7 +22,7 @@ type MessageRow = {
   role: string;
   content: string;
   created_at: string;
-}
+};
 
 /**
  * Utility class to handle serialization and deserialization of messages

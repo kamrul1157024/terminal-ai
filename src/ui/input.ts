@@ -49,7 +49,10 @@ export async function readFromStdin(): Promise<string> {
 /**
  * Process an AI command with context
  */
-export async function processAiCommandWithContext(input: string, options: ProcessAICommandOptions) {
+export async function processAiCommandWithContext(
+  input: string,
+  options: ProcessAICommandOptions,
+) {
   return runWithContext(async () => {
     await ensureConfigured();
     const pipedContent = await readFromStdin();
@@ -81,7 +84,11 @@ function setupContextVariables(options: ProcessAICommandOptions) {
 /**
  * Processes the command based on options
  */
-async function processCommand(input: string, context: string, options: ProcessAICommandOptions) {
+async function processCommand(
+  input: string,
+  context: string,
+  options: ProcessAICommandOptions,
+) {
   if (options.agent) {
     await runAgentMode({
       input,
