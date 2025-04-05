@@ -39,8 +39,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ai.git"
+    "url": "https://github.com/kamrul1157024/terminal-ai"
   },
+  "homepage": "https://github.com/kamrul1157024/terminal-ai#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.24.0",
