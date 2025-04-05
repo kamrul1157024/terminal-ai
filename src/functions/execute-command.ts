@@ -24,7 +24,7 @@ export const executeCommandFunction: FunctionDefinition = {
           "The terminal command to execute with shell try to return in single line",
       },
     },
-    required: ["command", "requiresSudo"],
+    required: ["command"],
   },
 };
 
