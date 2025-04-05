@@ -51,26 +51,21 @@ async function executeCommand(
   requiresSudo: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
   try {
-    // Preserve multiline commands by ensuring they're properly formatted
+    console.log("executeCommand---", command);
     const formattedCommand = command.trim();
 
-    // Determine appropriate shell and sudo based on OS
     const platform = os.platform();
     const isWindows = platform === "win32";
 
-    // Get shell based on platform
     const shell = await getDefaultShell();
 
-    // Options to ensure proper shell interpretation of multiline commands
     const execOptions: ExecOptions = {
       shell,
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
     };
 
-    // Process the command to handle multi-line content appropriately
     let executableCommand = formattedCommand;
 
-    // Check if command contains newlines, quotes, or backticks that need special handling
     if (
       formattedCommand.includes("\n") ||
       formattedCommand.includes("'") ||
@@ -78,7 +73,6 @@ async function executeCommand(
       formattedCommand.includes("`")
     ) {
       if (isWindows) {
-        // For Windows PowerShell
         executableCommand = formattedCommand
           .replace(/"/g, '`"')
           .replace(/`/g, "``");
@@ -120,10 +114,13 @@ async function executeCommand(
     }
 
     // Regular command execution (no sudo)
+    console.log("executableCommand--", executableCommand);
     const { stdout, stderr } = await execPromise(
       executableCommand,
       execOptions,
     );
+    console.log("stdout--", stdout);
+    console.log("stderr--", stderr);
     return { stdout, stderr };
   } catch (error) {
     if (error instanceof Error) {
@@ -150,7 +147,7 @@ export const executeCommandHandler = async (args: {
     if (!confirm) {
       return {
         stdout: "",
-        stderr: "User do not want to proceed with this command.",
+        stderr: "After asking for confirmation, user do not want to proceed with this command.",
       };
     }
   }
