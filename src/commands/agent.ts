@@ -1,4 +1,6 @@
 import inquirer from "inquirer";
+import chalk from "chalk";
+import ora from "ora";
 import { createLLMProvider } from "../llm";
 import { CommandProcessor } from "../services";
 import { MessageRole, Message, TokenUsage } from "../llm/interface";
@@ -24,10 +26,17 @@ const AGENT_SYSTEM_PROMPT = `You are a helpful terminal agent. Help the user acc
   if the command execution fails, try to figureout the issue and resolve it
   Keep responses concise and focused on the user's goal.`;
 const EXIT_COMMANDS = ["\exit", "\quit", "\q"];
-const PROMPT_SYMBOL = ">>";
-const EMPTY_INPUT_MESSAGE =
-  "Please enter a command or question. Type \\exit, \\quit, or \\q to exit.";
-const EXIT_MESSAGE = "Exiting agent mode";
+const HELP_COMMAND = "\help";
+const PROMPT_SYMBOL = chalk.green(">> ");
+const EMPTY_INPUT_MESSAGE = chalk.yellow(
+  "Please enter a command or question. Type \\help for available commands."
+);
+const EXIT_MESSAGE = chalk.blue("Exiting agent mode");
+const HELP_MESSAGE = chalk.cyan(`
+Available commands:
+  \\exit, \\quit, \\q - Exit agent mode
+  \\help - Show this help message
+`);
 
 /**
  * Process user input and check for special commands
@@ -51,6 +60,11 @@ async function processUserInput(): Promise<{
   if (EXIT_COMMANDS.includes(trimmedInput)) {
     logger.info(EXIT_MESSAGE);
     return { shouldContinue: false, input: trimmedInput };
+  }
+
+  if (trimmedInput === HELP_COMMAND) {
+    console.log(HELP_MESSAGE);
+    return processUserInput();
   }
 
   if (!trimmedInput) {
@@ -102,11 +116,11 @@ export async function runAgentMode({
         thread = await sessionManager.createThread();
       } else {
         thread = existingThread;
-        logger.info(`Loaded thread: ${thread.name} (${thread.id})`);
+        console.log(chalk.blue(`Loaded thread: ${chalk.bold(thread.name)} (${thread.id})`));
       }
     } else {
       thread = await sessionManager.createThread();
-      logger.info(`Created new thread: ${thread.name} (${thread.id})`);
+      console.log(chalk.blue(`Created new thread: ${chalk.bold(thread.name)} (${thread.id})`));
     }
 
     let conversationHistory = thread.messages;
@@ -120,6 +134,10 @@ export async function runAgentMode({
     // Add the initial user message if starting a new conversation
     if (conversationHistory.length === 0) {
       if (!userInput.trim()) {
+        // Welcome message for new threads
+        console.log(chalk.cyan.bold("\n=== Terminal AI Assistant ==="));
+        console.log(chalk.cyan("Type your questions or commands. Type \\help for available commands.\n"));
+        
         // If no input is provided and this is a new thread, prompt for input
         const { shouldContinue, input: firstInput } = await processUserInput();
         if (!shouldContinue) {
@@ -152,13 +170,34 @@ export async function runAgentMode({
     };
 
     while (true) {
+      // Print a separator between conversations
+      if (conversationHistory.length > 0) {
+        const lastMessage = conversationHistory[conversationHistory.length - 1];
+        if (lastMessage.role === "user") {
+          console.log(chalk.bold.cyan("\nYou: ") + chalk.white(lastMessage.content) + "\n");
+        }
+      }
+      
+      // Show spinner while waiting for AI response
+      const spinner = ora({
+        text: chalk.yellow('AI Assistant is thinking...'),
+        spinner: 'dots',
+      }).start();
+      
       // Process the command with the LLM
+      let responseText = "";
       const { history, usage } = await commandProcessor.processCommand({
         input: userInput,
-        onToken: (token: string) => process.stdout.write(token),
+        onToken: (token: string) => {
+          responseText += token;
+          return;
+        },
         conversationHistory,
       });
 
+      spinner.stop();
+      console.log(chalk.bold.green("AI: ") + chalk.white(responseText) + "\n");
+      
       conversationHistory = history;
       
       // Update the thread with new messages
@@ -188,6 +227,9 @@ export async function runAgentMode({
       if (
         conversationHistory[conversationHistory.length - 1].role === "assistant"
       ) {
+        // Show a subtle separator
+        console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
+        
         const { shouldContinue, input } = await processUserInput();
         if (!shouldContinue) {
           break;
@@ -199,11 +241,16 @@ export async function runAgentMode({
       }
     }
 
+    // Show a nice exit message with cost info
+    console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
+    console.log(chalk.blue.bold("Session ended."));
     costTracker.displayTotalCost();
   } catch (error: unknown) {
     if (error instanceof Error) {
+      console.log(chalk.red(`\n❌ Error: ${error.message}`));
       logger.error(`Error in agent mode: ${error.message}`);
     } else {
+      console.log(chalk.red(`\n❌ Error: ${String(error)}`));
       logger.error(`Error in agent mode: ${String(error)}`);
     }
   }
