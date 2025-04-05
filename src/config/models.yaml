@@ -4,29 +4,19 @@ openai:
     - name: GPT-4o
       value: gpt-4o
       pricing:
-        input: 10.0 # Price per million tokens for input
-        output: 30.0 # Price per million tokens for output
-    - name: GPT-3.5 Turbo
-      value: gpt-3.5-turbo
+        input: 2.50 # Price per million tokens for input
+        output: 10.0 # Price per million tokens for output
+    - name: GPT-4o-mini
+      value: gpt-4o-mini
       pricing:
-        input: 0.5 # Price per million tokens for input
-        output: 1.5 # Price per million tokens for output
+        input: 0.15 # Price per million tokens for input
+        output: 0.60 # Price per million tokens for output
 
 ollama:
   default: llama3
   models:
     - name: Llama 3.2
       value: llama3.2
-      pricing:
-        input: 0.0 # Local models are free
-        output: 0.0 # Local models are free
-    - name: Mistral
-      value: mistral
-      pricing:
-        input: 0.0 # Local models are free
-        output: 0.0 # Local models are free
-    - name: Phi-3
-      value: phi3
       pricing:
         input: 0.0 # Local models are free
         output: 0.0 # Local models are free
