@@ -95,15 +95,17 @@ async function executeCommand(
       formattedCommand.includes("\n") ||
       formattedCommand.includes("'") ||
       formattedCommand.includes('"') ||
-      formattedCommand.includes('`')
+      formattedCommand.includes("`")
     ) {
       if (isWindows) {
         // For Windows PowerShell
-        executableCommand = formattedCommand.replace(/"/g, '`"').replace(/`/g, '``');
+        executableCommand = formattedCommand
+          .replace(/"/g, '`"')
+          .replace(/`/g, "``");
       } else {
         // For Unix shells (bash/zsh)
         // Escape backticks first before other processing
-        executableCommand = formattedCommand.replace(/`/g, '\\`');
+        executableCommand = formattedCommand.replace(/`/g, "\\`");
 
         // Simple technique - if we find a quoted string with newlines inside, fix just that part
         const quotedStringRegex = /(['"])((?:\\\1|(?!\1).)*?)(\1)/g;

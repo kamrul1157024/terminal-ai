@@ -1,5 +1,5 @@
 import { TokenUsage } from "../llm/interface";
-import { calculateCost } from "./model-config";
+import { calculateCost } from "../config/model-config";
 import chalk from "chalk";
 import { logger } from "../logger";
 

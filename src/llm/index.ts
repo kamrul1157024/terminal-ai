@@ -3,7 +3,7 @@ import { OpenAIProvider } from "./providers/openai-provider";
 import { ClaudeProvider } from "./providers/claude-provider";
 import { GeminiProvider } from "./providers/gemini-provider";
 import { OllamaProvider } from "./providers/ollama-provider";
-import { readConfig } from "../utils/config";
+import { readConfig } from "../config/config";
 
 export enum LLMProviderType {
   OPENAI = "openai",

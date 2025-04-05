@@ -1,9 +1,9 @@
 import { runAgentMode } from "../commands/agent";
 import { processAiCommand } from "../commands/ai";
 import { initCommand } from "../commands/init";
-import { configExists } from "../utils/config";
+import { configExists } from "../config/config";
 import { logger } from "../logger";
-import "../utils/model-config"; // Ensure model config is loaded
+import "../config/model-config"; // Ensure model config is loaded
 import {
   runWithContext,
   setAutoApprove,

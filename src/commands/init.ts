@@ -1,7 +1,6 @@
 import inquirer from "inquirer";
-import { writeConfig, configExists } from "../utils/config";
+import { Config, ModelConfig } from "../config";
 import { LLMProviderType } from "../llm";
-import { getProviderModels, getDefaultModel } from "../utils/model-config";
 import { logger } from "../logger";
 
 /**
@@ -13,7 +12,7 @@ export async function initCommand(): Promise<void> {
     logger.info("---------------------------");
 
     // Check if config already exists
-    if (configExists()) {
+    if (Config.configExists()) {
       const { overwrite } = await inquirer.prompt([
         {
           type: "confirm",
@@ -75,8 +74,8 @@ export async function initCommand(): Promise<void> {
     }
 
     // Get models from configuration file for the selected provider
-    const models = getProviderModels(provider);
-    const defaultModel = getDefaultModel(provider);
+    const models = ModelConfig.getProviderModels(provider);
+    const defaultModel = ModelConfig.getDefaultModel(provider);
 
     // Get model based on provider
     let model = defaultModel;
@@ -110,7 +109,7 @@ export async function initCommand(): Promise<void> {
       config.apiEndpoint = apiEndpoint;
     }
 
-    const success = writeConfig(config);
+    const success = Config.writeConfig(config);
 
     if (success) {
       logger.success("Configuration saved successfully!");
