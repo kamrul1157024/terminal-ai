@@ -7,7 +7,7 @@ import {
   setCostTracker,
   setShowCostInfo,
 } from "../utils/context-vars";
-import { CumulativeCostTracker } from "../utils/pricing-calculator";
+import { CumulativeCostTracker } from "../services/pricing";
 import { SQLiteThreadRepository } from "../repositories";
 
 /**

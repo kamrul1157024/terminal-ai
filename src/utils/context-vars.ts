@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { CumulativeCostTracker } from "./pricing-calculator";
+import { CumulativeCostTracker } from "../services/pricing";
 type Store = {
   autopilot: boolean;
   costTracker: CumulativeCostTracker;

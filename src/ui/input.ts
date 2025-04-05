@@ -1,7 +1,7 @@
 import { runAgentMode } from "../commands/agent";
 import { processAiCommand } from "../commands/ai";
 import { initCommand } from "../commands/init";
-import { configExists } from "../config/config";
+import { Config } from "../config";
 import { logger } from "../logger";
 import "../config/model-config"; // Ensure model config is loaded
 import {
@@ -10,7 +10,7 @@ import {
   setCostTracker,
   setShowCostInfo,
 } from "../utils/context-vars";
-import { CumulativeCostTracker } from "../utils/pricing-calculator";
+import { CumulativeCostTracker } from "../services/pricing";
 
 /**
  * Reads content from stdin if data is being piped
@@ -57,7 +57,7 @@ export async function processAiCommandWithContext(input: string, options: any) {
  * Ensures Terminal AI is configured
  */
 async function ensureConfigured() {
-  if (!configExists()) {
+  if (!Config.configExists()) {
     logger.info("Terminal AI is not configured. Running setup wizard...");
     await initCommand();
   }

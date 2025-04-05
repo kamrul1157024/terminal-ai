@@ -8,7 +8,7 @@ import { FunctionManager } from "../functions/manager";
 import {
   CumulativeCostTracker,
   displayCostInfo,
-} from "../utils/pricing-calculator";
+} from "../services/pricing";
 import { getShowCostInfo } from "../utils/context-vars";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";

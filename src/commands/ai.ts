@@ -3,7 +3,7 @@ import { ExecuteCommand, SystemInfo } from "../functions";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { FunctionManager } from "../functions/manager";
-import { displayCostInfo } from "../utils/pricing-calculator";
+import { displayCostInfo } from "../services/pricing";
 import { getShowCostInfo } from "../utils/context-vars";
 import { LLM } from "../services/llm";
 
