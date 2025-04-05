@@ -71,6 +71,7 @@ GUIDELINES:
 - Prioritize safe operations; warn about potentially dangerous commands
 - If a command execution fails, troubleshoot the issue and suggest alternatives
 - When appropriate, suggest better ways to accomplish the user's goal
+- Make sure multiline commands are handled correctly and do not use backticks
 
 When the user asks a question or needs assistance, figure out the best way to help them, including using commands when necessary.`;
 
