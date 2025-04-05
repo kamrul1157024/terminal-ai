@@ -2,36 +2,23 @@
 
 A CLI application that uses AI to process natural language commands and execute them in the terminal.
 
-## Features
+It supports openAI gpt-4o, gpt-4o-mini and llama3.2 through ollama. It will support claude and gemini soon.
 
-- Convert natural language to terminal commands
-- Special handling for potentially dangerous commands
-- Automatic sudo escalation when required
-- Configurable AI provider support
-- Interactive agent mode with conversational interface
 
 ## Installation
 
-1. Clone this repository
-2. Install dependencies:
-   ```
-   yarn install
-   ```
-3. Build the application:
-   ```
-   yarn build
-   ```
-4. Link the application globally (optional):
-   ```
-   yarn link
-   ```
+```
+npm install -g terminal-ai-tool
+```
 
 ## Setup
+
+If you are using ollama, make sure the server is running and the llama3.2 model is downloaded.
 
 Run the initialization command to configure your AI provider:
 
 ```
-ai init
+ai setup
 ```
 
 This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai.yaml`.
@@ -118,19 +105,6 @@ ai "analyze this code"
 # Set provider
 export AI_PROVIDER=claude
 ai "help me with this task"
-```
-
-### Configuration File
-
-The configuration is stored in `~/.terminal-ai.yaml`. You can manually edit this file to change settings:
-
-```yaml
-profiles:
-  - name: default
-    provider: openai
-    apiKey: sk-...
-    model: gpt-4
-activeProfile: default
 ```
 
 ## Thread Management
@@ -317,6 +291,4 @@ ai -p <profile-name> "your command"
 
 ## Cost Tracking
 
-## License
-
-MIT 
+Cost Tracking is not completly correct but it will give you an idea of the cost of your commands.
