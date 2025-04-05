@@ -6,7 +6,7 @@ import { initCommand } from "./commands/init";
 import { configExists } from "./utils/config";
 import { logger } from "./utils/logger";
 import "./utils/model-config"; // Ensure model config is loaded
-import { setAutopilot } from "./utils/context-vars";
+import { runWithContext, setAutopilot } from "./utils/context-vars";
 
 // Package version from package.json
 const packageJson = require("../package.json");
@@ -53,19 +53,13 @@ async function readFromStdin(): Promise<string> {
   });
 }
 
-// Add the main command
-program
-  .argument("<input>", "The command to interpret")
-  .option("-a, --agent", "Run in agent mode with continuous conversation")
-  .option("--autopilot", "Run in autopilot mode")
-  .action(async (input: string, options) => {
-    // Check if config exists
+function processAiCommandWithContext(input: string, options: any) {
+  return runWithContext(async () => {
     if (!configExists()) {
       logger.info("Terminal AI is not configured. Running setup wizard...");
       await initCommand();
     }
 
-    // Read piped content if any
     const pipedContent = await readFromStdin();
 
     setAutopilot(options.autopilot);
@@ -78,6 +72,16 @@ program
     } else {
       await processAiCommand(input, pipedContent);
     }
+  });
+}
+
+// Add the main command
+program
+  .argument("<input>", "The command to interpret")
+  .option("-a, --agent", "Run in agent mode with continuous conversation")
+  .option("--autopilot", "Run in autopilot mode")
+  .action(async (input: string, options) => {
+    await processAiCommandWithContext(input, options);
   });
 
 // Parse arguments
