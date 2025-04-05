@@ -1,5 +1,5 @@
-import chalk from 'chalk';
-import inquirer from 'inquirer';
+import chalk from "chalk";
+import inquirer from "inquirer";
 
 /**
  * Displays a list of threads
@@ -7,12 +7,12 @@ import inquirer from 'inquirer';
 export function displayThreadsList(threads: any[]) {
   console.log(chalk.bold.blue("\n📋 Conversation Threads"));
   console.log(chalk.blue("=====================\n"));
-  
+
   // Format threads for display
   const formattedThreads = formatThreadsForDisplay(threads);
-  
+
   // Display threads
-  formattedThreads.forEach(thread => {
+  formattedThreads.forEach((thread) => {
     console.log(`${chalk.cyan(thread.index)}. ${thread.displayString}`);
   });
 }
@@ -24,14 +24,14 @@ export function formatThreadsForDisplay(threads: any[]) {
   return threads.map((thread, index) => {
     const messageCount = thread.messages.length;
     const lastUpdate = thread.updatedAt.toLocaleString();
-    
+
     return {
       index: index + 1,
       id: thread.id,
       name: thread.name,
       messageCount,
       lastUpdate,
-      displayString: `${chalk.green(thread.name)} ${chalk.gray(`(ID: ${thread.id})`)}\n   ${chalk.yellow(`Messages: ${messageCount}`)} • ${chalk.blue(`Last updated: ${lastUpdate}`)}`
+      displayString: `${chalk.green(thread.name)} ${chalk.gray(`(ID: ${thread.id})`)}\n   ${chalk.yellow(`Messages: ${messageCount}`)} • ${chalk.blue(`Last updated: ${lastUpdate}`)}`,
     };
   });
 }
@@ -44,7 +44,7 @@ export function displayConversationHistory(thread: any) {
   if (thread.messages.length > 0) {
     console.log(chalk.bold.blue("\nConversation history:"));
     console.log(chalk.blue("===================="));
-    
+
     // Display conversation history
     thread.messages.forEach((message: any) => {
       const role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
@@ -54,9 +54,11 @@ export function displayConversationHistory(thread: any) {
         console.log(`\n${chalk.yellow(`${role}:`)} ${message.content}`);
       }
     });
-    
+
     console.log(chalk.blue("\n===================="));
-    console.log(chalk.bold("Continuing conversation. Type your message below:"));
+    console.log(
+      chalk.bold("Continuing conversation. Type your message below:"),
+    );
   }
 }
 
@@ -66,16 +68,16 @@ export function displayConversationHistory(thread: any) {
 export async function promptThreadAction(): Promise<string> {
   const { action } = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'action',
-      message: 'What would you like to do?',
+      type: "list",
+      name: "action",
+      message: "What would you like to do?",
       choices: [
-        { name: 'Attach to a thread', value: 'attach' },
-        { name: 'Return to command line', value: 'exit' }
-      ]
-    }
+        { name: "Attach to a thread", value: "attach" },
+        { name: "Return to command line", value: "exit" },
+      ],
+    },
   ]);
-  
+
   return action;
 }
 
@@ -84,24 +86,24 @@ export async function promptThreadAction(): Promise<string> {
  */
 export async function promptThreadSelection(threads: any[]): Promise<string> {
   const formattedThreads = formatThreadsForDisplay(threads);
-  
+
   // Add SIGINT (Ctrl+C) handler
-  process.on('SIGINT', () => {
-    console.log(chalk.yellow('\nOperation cancelled by user. Exiting...'));
+  process.on("SIGINT", () => {
+    console.log(chalk.yellow("\nOperation cancelled by user. Exiting..."));
     process.exit(0);
   });
-  
+
   const { selectedThread } = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'selectedThread',
-      message: 'Select a thread to attach:',
-      choices: formattedThreads.map(thread => ({
+      type: "list",
+      name: "selectedThread",
+      message: "Select a thread to attach:",
+      choices: formattedThreads.map((thread) => ({
         name: `[${thread.id}] ${thread.name}`,
-        value: thread.id
-      }))
-    }
+        value: thread.id,
+      })),
+    },
   ]);
-  
+
   return selectedThread;
-} 
+}

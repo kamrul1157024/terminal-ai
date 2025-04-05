@@ -48,7 +48,7 @@ export async function processAiCommandWithContext(input: string, options: any) {
     await ensureConfigured();
     const pipedContent = await readFromStdin();
     setupContextVariables(options);
-    
+
     await processCommand(input, pipedContent, options);
   });
 }
@@ -85,4 +85,4 @@ async function processCommand(input: string, context: string, options: any) {
   } else {
     await processAiCommand(input, context);
   }
-} 
+}

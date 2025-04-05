@@ -34,14 +34,14 @@ function getSystemInfoFromOS(): string {
   const osArch = os.arch();
   const totalMemory = Math.round(os.totalmem() / (1024 * 1024 * 1024));
   const freeMemory = Math.round(os.freemem() / (1024 * 1024 * 1024));
-  const cpuInfo = os.cpus()[0]?.model || 'Unknown CPU';
+  const cpuInfo = os.cpus()[0]?.model || "Unknown CPU";
   const cpuCores = os.cpus().length;
   const uptime = Math.round(os.uptime() / 3600);
   const hostname = os.hostname();
   const username = os.userInfo().username;
   const homedir = os.homedir();
-  const shell = os.userInfo().shell || 'Unknown shell';
-  
+  const shell = os.userInfo().shell || "Unknown shell";
+
   return `
 OS: ${osType} ${osRelease} (${osPlatform} ${osArch})
 Hostname: ${hostname}
@@ -79,7 +79,7 @@ const EXIT_COMMANDS = ["\exit", "\quit", "\q"];
 const HELP_COMMAND = "\help";
 const PROMPT_SYMBOL = chalk.green(">> ");
 const EMPTY_INPUT_MESSAGE = chalk.yellow(
-  "Please enter a command or question. Type \\help for available commands."
+  "Please enter a command or question. Type \\help for available commands.",
 );
 const EXIT_MESSAGE = chalk.blue("Exiting agent mode");
 const HELP_MESSAGE = chalk.cyan(`
@@ -131,8 +131,7 @@ export interface AgentModeOptions {
   threadId?: string;
 }
 
-function printAIResponse(responseText: string) {
-}
+function printAIResponse(responseText: string) {}
 
 export async function runAgentMode({
   input,
@@ -152,11 +151,11 @@ export async function runAgentMode({
 
     // Get system information using the OS module
     const systemInfo = getSystemInfoFromOS();
-    
+
     // Create the system prompt with system information
     const AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_TEMPLATE.replace(
       "{{systemInfo}}",
-      systemInfo
+      systemInfo,
     );
 
     const llmProvider = createLLMProvider();
@@ -168,21 +167,31 @@ export async function runAgentMode({
 
     // Initialize the session manager
     const sessionManager = new SQLiteSessionManager();
-    
+
     // Initialize or load thread
     let thread: Thread;
     if (threadId) {
       const existingThread = await sessionManager.getThread(threadId);
       if (!existingThread) {
-        logger.info(`Thread with ID ${threadId} not found. Creating a new thread.`);
+        logger.info(
+          `Thread with ID ${threadId} not found. Creating a new thread.`,
+        );
         thread = await sessionManager.createThread();
       } else {
         thread = existingThread;
-        console.log(chalk.blue(`Loaded thread: ${chalk.bold(thread.name)} (${thread.id})`));
+        console.log(
+          chalk.blue(
+            `Loaded thread: ${chalk.bold(thread.name)} (${thread.id})`,
+          ),
+        );
       }
     } else {
       thread = await sessionManager.createThread();
-      console.log(chalk.blue(`Created new thread: ${chalk.bold(thread.name)} (${thread.id})`));
+      console.log(
+        chalk.blue(
+          `Created new thread: ${chalk.bold(thread.name)} (${thread.id})`,
+        ),
+      );
     }
 
     let conversationHistory = thread.messages;
@@ -198,8 +207,12 @@ export async function runAgentMode({
       if (!userInput.trim()) {
         // Welcome message for new threads
         console.log(chalk.cyan.bold("\n=== Terminal AI Assistant ==="));
-        console.log(chalk.cyan("Type your questions or commands. Type \\help for available commands.\n"));
-        
+        console.log(
+          chalk.cyan(
+            "Type your questions or commands. Type \\help for available commands.\n",
+          ),
+        );
+
         // If no input is provided and this is a new thread, prompt for input
         const { shouldContinue, input: firstInput } = await processUserInput();
         if (!shouldContinue) {
@@ -207,7 +220,7 @@ export async function runAgentMode({
         }
         userInput = firstInput;
       }
-      
+
       conversationHistory.push({
         role: "user",
         content: userInput,
@@ -236,13 +249,16 @@ export async function runAgentMode({
       if (conversationHistory.length > 0) {
         const lastMessage = conversationHistory[conversationHistory.length - 1];
         if (lastMessage.role === "user") {
-          console.log(chalk.bold.cyan("\nYou: ") + chalk.white(lastMessage.content) + "\n");
+          console.log(
+            chalk.bold.cyan("\nYou: ") +
+              chalk.white(lastMessage.content) +
+              "\n",
+          );
         }
       }
-      
-      
+
       let responseText = "";
-      
+
       const { history, usage } = await commandProcessor.processCommand({
         input: userInput,
         onToken: (token: string) => {
@@ -255,29 +271,36 @@ export async function runAgentMode({
 
       // Add a newline after streaming is complete
       console.log("\n");
-      
+
       conversationHistory = history;
-      
+
       // Update the thread with new messages
       await sessionManager.updateThread(thread.id, conversationHistory);
-      
+
       // If this is a new thread with the default name and we now have both user input and AI response,
       // generate a better name based on the conversation content
-      if (thread.name.startsWith('Thread-') && conversationHistory.length >= 2) {
-        const userMessage = conversationHistory.find(msg => msg.role === 'user')?.content || '';
-        const aiResponse = conversationHistory.find(msg => msg.role === 'assistant')?.content || '';
-        
+      if (
+        thread.name.startsWith("Thread-") &&
+        conversationHistory.length >= 2
+      ) {
+        const userMessage =
+          conversationHistory.find((msg) => msg.role === "user")?.content || "";
+        const aiResponse =
+          conversationHistory.find((msg) => msg.role === "assistant")
+            ?.content || "";
+
         // Create a name by combining user input and AI response
         const combinedContent = `${userMessage} ${aiResponse}`;
         // Trim to max 120 chars and add ellipsis if truncated
-        const truncatedName = combinedContent.length > 120 
-          ? `${combinedContent.substring(0, 120).trim()}...` 
-          : combinedContent;
-        
+        const truncatedName =
+          combinedContent.length > 120
+            ? `${combinedContent.substring(0, 120).trim()}...`
+            : combinedContent;
+
         // Update the thread name
         await sessionManager.renameThread(thread.id, truncatedName);
       }
-      
+
       totalUsage.inputTokens += usage.inputTokens;
       totalUsage.outputTokens += usage.outputTokens;
 
@@ -286,7 +309,7 @@ export async function runAgentMode({
         conversationHistory[conversationHistory.length - 1].role === "assistant"
       ) {
         console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
-        
+
         const { shouldContinue, input } = await processUserInput();
         if (!shouldContinue) {
           break;

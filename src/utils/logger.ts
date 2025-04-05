@@ -141,15 +141,20 @@ export class Logger {
       // Parse markdown for command
       console.log(marked(message));
     } else {
-      const formattedMessage = this.formatMessage(LogLevel.INFO, commandWithPrompt);
+      const formattedMessage = this.formatMessage(
+        LogLevel.INFO,
+        commandWithPrompt,
+      );
       const length = formattedMessage.length + 2; // +2 for side padding
-      const border = '─'.repeat(length);
+      const border = "─".repeat(length);
       const topBorder = `┌${border}┐`;
       const bottomBorder = `└${border}┘`;
 
       if (this.colors) {
         console.log(`\n${chalk.cyan(topBorder)}`);
-        console.log(`${chalk.cyan('│')} ${chalk.cyan(formattedMessage)} ${chalk.cyan('│')}`);
+        console.log(
+          `${chalk.cyan("│")} ${chalk.cyan(formattedMessage)} ${chalk.cyan("│")}`,
+        );
         console.log(`${chalk.cyan(bottomBorder)}\n`);
       } else {
         console.log(`\n${topBorder}`);

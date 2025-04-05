@@ -91,7 +91,10 @@ function setupMainCommand(program: Command) {
     .option("-a, --agent", "Run in agent mode with continuous conversation")
     .option("--autopilot", "Run in autopilot mode")
     .option("--cost", "Show cost information")
-    .option("-t, --thread <threadId>", "Continue conversation in specified thread")
+    .option(
+      "-t, --thread <threadId>",
+      "Continue conversation in specified thread",
+    )
     .action(async (input: string, options) => {
       await inputProcessor.processAiCommandWithContext(input, options);
     });
@@ -100,7 +103,7 @@ function setupMainCommand(program: Command) {
 // Main execution
 function main() {
   const program = setupProgram();
-  
+
   program.parse(process.argv);
 
   if (!process.argv.slice(2).length) {

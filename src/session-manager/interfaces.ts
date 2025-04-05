@@ -13,29 +13,32 @@ export interface SessionManager {
    * Creates a new thread
    */
   createThread(name?: string): Promise<Thread>;
-  
+
   /**
    * Lists all available threads
    */
   listThreads(): Promise<Thread[]>;
-  
+
   /**
    * Gets a thread by ID
    */
   getThread(threadId: string): Promise<Thread | null>;
-  
+
   /**
    * Updates a thread with new messages
    */
-  updateThread(threadId: string, messages: Message<MessageRole>[]): Promise<Thread>;
-  
+  updateThread(
+    threadId: string,
+    messages: Message<MessageRole>[],
+  ): Promise<Thread>;
+
   /**
    * Renames a thread
    */
   renameThread(threadId: string, newName: string): Promise<Thread>;
-  
+
   /**
    * Deletes a thread
    */
   deleteThread(threadId: string): Promise<boolean>;
-} 
+}

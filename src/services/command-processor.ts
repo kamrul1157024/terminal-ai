@@ -61,23 +61,22 @@ export class CommandProcessor {
       options.function_call = "auto";
     }
 
-
     const spinner = ora({
-      text: chalk.yellow('AI Assistant is thinking...'),
-      spinner: 'dots',
+      text: chalk.yellow("AI Assistant is thinking..."),
+      spinner: "dots",
     }).start();
 
     const onStreamToken = (token: string) => {
       spinner.stop();
       onToken(token);
-    }
+    };
     const completion = await this.llmProvider.generateStreamingCompletion(
       messages,
       onStreamToken,
       options,
     );
 
-    if(spinner.isSpinning) {
+    if (spinner.isSpinning) {
       spinner.stop();
     }
 

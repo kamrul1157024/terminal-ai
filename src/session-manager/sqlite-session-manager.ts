@@ -1,9 +1,14 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { SessionManager, Thread } from './interfaces';
-import { Message, MessageRole, FunctionCallResponse, FunctionCallResult } from '../llm/interface';
-import { logger } from '../utils/logger';
+import Database from "better-sqlite3";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
+import { SessionManager, Thread } from "./interfaces";
+import {
+  Message,
+  MessageRole,
+  FunctionCallResponse,
+  FunctionCallResult,
+} from "../llm/interface";
+import { logger } from "../utils/logger";
 
 // Define interfaces for database row types
 interface ThreadRow {
@@ -29,36 +34,36 @@ class MessageSerializer {
    * Serialize a message for storage in SQLite
    */
   static serialize(message: Message<MessageRole>): string {
-    if (typeof message.content === 'string') {
+    if (typeof message.content === "string") {
       return message.content;
     }
     return JSON.stringify(message.content);
   }
-  
+
   /**
    * Deserialize a message from SQLite storage
    */
   static deserialize(role: string, content: string): Message<MessageRole> {
     // Simple text messages
-    if (role === 'user' || role === 'system' || role === 'assistant') {
+    if (role === "user" || role === "system" || role === "assistant") {
       return {
         role: role as MessageRole,
-        content: content
+        content: content,
       } as Message<MessageRole>;
     }
-    
+
     // For function or function_call messages, try to parse JSON content
     try {
       const parsedContent = JSON.parse(content);
       return {
         role: role as MessageRole,
-        content: parsedContent
+        content: parsedContent,
       } as Message<MessageRole>;
     } catch (e) {
       // Fallback to string content if JSON parsing fails
       return {
         role: role as MessageRole,
-        content: content
+        content: content,
       } as unknown as Message<MessageRole>;
     }
   }
@@ -66,12 +71,12 @@ class MessageSerializer {
 
 export class SQLiteSessionManager implements SessionManager {
   private db: Database.Database;
-  
-  constructor(baseDir: string = '.terminal-ai-sessions') {
+
+  constructor(baseDir: string = ".terminal-ai-sessions") {
     // Create base directory in user's home directory
-    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    const dbPath = path.join(homeDir, baseDir, 'terminal-ai.db');
-    
+    const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+    const dbPath = path.join(homeDir, baseDir, "terminal-ai.db");
+
     try {
       this.db = new Database(dbPath);
       this.initDatabase();
@@ -81,7 +86,7 @@ export class SQLiteSessionManager implements SessionManager {
       throw error;
     }
   }
-  
+
   /**
    * Initialize the database by creating necessary tables if they don't exist
    */
@@ -95,7 +100,7 @@ export class SQLiteSessionManager implements SessionManager {
         updated_at TEXT NOT NULL
       )
     `);
-    
+
     // Create messages table
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS messages (
@@ -107,10 +112,10 @@ export class SQLiteSessionManager implements SessionManager {
         FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE
       )
     `);
-    
-    logger.info('Database initialized successfully');
+
+    logger.info("Database initialized successfully");
   }
-  
+
   /**
    * Creates a new thread
    */
@@ -118,27 +123,28 @@ export class SQLiteSessionManager implements SessionManager {
     const threadId = uuidv4();
     const now = new Date();
     const isoDate = now.toISOString();
-    
-    const threadName = name || `Thread-${now.toISOString().slice(0, 19).replace(/[T:-]/g, '')}`;
-    
+
+    const threadName =
+      name || `Thread-${now.toISOString().slice(0, 19).replace(/[T:-]/g, "")}`;
+
     const stmt = this.db.prepare(`
       INSERT INTO threads (id, name, created_at, updated_at)
       VALUES (?, ?, ?, ?)
     `);
-    
+
     stmt.run(threadId, threadName, isoDate, isoDate);
-    
+
     const thread: Thread = {
       id: threadId,
       name: threadName,
       createdAt: now,
       updatedAt: now,
-      messages: []
+      messages: [],
     };
-    
+
     return thread;
   }
-  
+
   /**
    * Lists all available threads (limited to last 30)
    */
@@ -150,9 +156,9 @@ export class SQLiteSessionManager implements SessionManager {
         ORDER BY updated_at DESC
         LIMIT 30
       `);
-      
+
       const rows = stmt.all() as ThreadRow[];
-      
+
       const threads: Thread[] = [];
       for (const row of rows) {
         const thread = await this.getThread(row.id);
@@ -160,14 +166,14 @@ export class SQLiteSessionManager implements SessionManager {
           threads.push(thread);
         }
       }
-      
+
       return threads;
     } catch (error) {
       logger.error(`Error listing threads: ${error}`);
       return [];
     }
   }
-  
+
   /**
    * Gets a thread by ID
    */
@@ -179,12 +185,12 @@ export class SQLiteSessionManager implements SessionManager {
         FROM threads
         WHERE id = ?
       `);
-      
+
       const thread = threadStmt.get(threadId) as ThreadRow | undefined;
       if (!thread) {
         return null;
       }
-      
+
       // Get messages for the thread
       const messagesStmt = this.db.prepare(`
         SELECT id, role, content, created_at
@@ -192,9 +198,9 @@ export class SQLiteSessionManager implements SessionManager {
         WHERE thread_id = ?
         ORDER BY created_at ASC
       `);
-      
+
       const messagesRows = messagesStmt.all(threadId) as MessageRow[];
-      
+
       // Convert raw messages to typed messages using the serializer
       const messages: Message<MessageRole>[] = [];
       for (const row of messagesRows) {
@@ -205,25 +211,28 @@ export class SQLiteSessionManager implements SessionManager {
           logger.error(`Error deserializing message ${row.id}: ${error}`);
         }
       }
-      
+
       // Convert to Thread object
       return {
         id: thread.id,
         name: thread.name,
         createdAt: new Date(thread.created_at),
         updatedAt: new Date(thread.updated_at),
-        messages
+        messages,
       };
     } catch (error) {
       logger.error(`Error getting thread ${threadId}: ${error}`);
       return null;
     }
   }
-  
+
   /**
    * Updates a thread with new messages
    */
-  async updateThread(threadId: string, messages: Message<MessageRole>[]): Promise<Thread> {
+  async updateThread(
+    threadId: string,
+    messages: Message<MessageRole>[],
+  ): Promise<Thread> {
     try {
       // Start a transaction
       const transaction = this.db.transaction(() => {
@@ -233,54 +242,54 @@ export class SQLiteSessionManager implements SessionManager {
           SET updated_at = ?
           WHERE id = ?
         `);
-        
+
         const now = new Date().toISOString();
         updateThreadStmt.run(now, threadId);
-        
+
         // Delete existing messages
         const deleteMessagesStmt = this.db.prepare(`
           DELETE FROM messages
           WHERE thread_id = ?
         `);
-        
+
         deleteMessagesStmt.run(threadId);
-        
+
         // Insert new messages
         const insertMessageStmt = this.db.prepare(`
           INSERT INTO messages (id, thread_id, role, content, created_at)
           VALUES (?, ?, ?, ?, ?)
         `);
-        
+
         for (const message of messages) {
           // Serialize message content
           const contentStr = MessageSerializer.serialize(message);
-          
+
           insertMessageStmt.run(
             uuidv4(), // Generate a new ID for each message
             threadId,
             message.role,
             contentStr,
-            now
+            now,
           );
         }
       });
-      
+
       // Execute the transaction
       transaction();
-      
+
       // Get the updated thread
       const thread = await this.getThread(threadId);
       if (!thread) {
         throw new Error(`Thread with ID ${threadId} not found`);
       }
-      
+
       return thread;
     } catch (error) {
       logger.error(`Error updating thread ${threadId}: ${error}`);
       throw error;
     }
   }
-  
+
   /**
    * Renames a thread
    */
@@ -291,27 +300,27 @@ export class SQLiteSessionManager implements SessionManager {
         SET name = ?, updated_at = ?
         WHERE id = ?
       `);
-      
+
       const now = new Date().toISOString();
       const result = stmt.run(newName, now, threadId);
-      
+
       if (result.changes === 0) {
         throw new Error(`Thread with ID ${threadId} not found`);
       }
-      
+
       // Get the updated thread
       const thread = await this.getThread(threadId);
       if (!thread) {
         throw new Error(`Thread with ID ${threadId} not found`);
       }
-      
+
       return thread;
     } catch (error) {
       logger.error(`Error renaming thread ${threadId}: ${error}`);
       throw error;
     }
   }
-  
+
   /**
    * Deletes a thread
    */
@@ -324,28 +333,28 @@ export class SQLiteSessionManager implements SessionManager {
           DELETE FROM messages
           WHERE thread_id = ?
         `);
-        
+
         deleteMessagesStmt.run(threadId);
-        
+
         // Delete the thread
         const deleteThreadStmt = this.db.prepare(`
           DELETE FROM threads
           WHERE id = ?
         `);
-        
+
         deleteThreadStmt.run(threadId);
       });
-      
+
       // Execute the transaction
       transaction();
-      
+
       return true;
     } catch (error) {
       logger.error(`Error deleting thread ${threadId}: ${error}`);
       return false;
     }
   }
-  
+
   /**
    * Close the database connection when done
    */
@@ -354,4 +363,4 @@ export class SQLiteSessionManager implements SessionManager {
       this.db.close();
     }
   }
-} 
+}
