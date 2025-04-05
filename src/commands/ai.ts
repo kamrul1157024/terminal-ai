@@ -39,16 +39,18 @@ export async function processAiCommand(
       functionManager,
     });
 
-    const history: Message<MessageRole>[] = [];
+    let userInput = input;
     if (context) {
-      history.push({
-        role: "user",
-        content: `Context: ${context}`,
-      });
+      userInput = `Context: ${context}\n${userInput}`;
     }
 
+    const history: Message<MessageRole>[] = [];
+    history.push({
+      role: "user",
+      content: userInput,
+    });
+
     const { usage } = await llm.generateStreamingCompletion({
-      input,
       onToken: (token: string) => process.stdout.write(token),
       conversationHistory: history,
     });

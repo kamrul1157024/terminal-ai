@@ -242,7 +242,6 @@ export async function runAgentMode({
       }
 
       const { history, usage } = await llm.generateStreamingCompletion({
-        input: userInput,
         onToken: (token: string) => {
           process.stdout.write(chalk.white(token));
           return;
@@ -298,7 +297,10 @@ export async function runAgentMode({
         if (getShowCostInfo()) {
           displayCostInfo(totalUsage);
         }
-        userInput = input;
+        history.push({
+          role: "user",
+          content: input,
+        });
       }
     }
 

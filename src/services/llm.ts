@@ -37,11 +37,9 @@ export class LLM {
   }
 
   async generateStreamingCompletion({
-    input,
     onToken,
     conversationHistory,
   }: {
-    input: string;
     onToken: (token: string) => void;
     conversationHistory: Message<MessageRole>[];
   }): Promise<{
@@ -53,7 +51,6 @@ export class LLM {
     const messages: Message<MessageRole>[] = [
       { role: "system", content: this.systemPrompt },
       ...history,
-      { role: "user", content: input },
     ];
 
     const options: CompletionOptions = {};

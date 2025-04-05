@@ -23,10 +23,6 @@ export const executeCommandFunction: FunctionDefinition = {
         description:
           "The terminal command to execute with shell try to return in single line",
       },
-      requiresSudo: {
-        type: "boolean",
-        description: "Whether the command requires sudo",
-      },
     },
     required: ["command", "requiresSudo"],
   },
@@ -157,12 +153,10 @@ async function executeCommand(
 
 export const executeCommandHandler = async (args: {
   command: string;
-  requiresSudo: boolean;
 }): Promise<{ stdout: string; stderr: string }> => {
   const command = args.command;
-  const requiresSudo = args.requiresSudo;
 
-  logger.command(requiresSudo ? `sudo ${command}` : command);
+  logger.command(command);
 
   if (!isSystemQueryingCommand(command) && !getAutoApprove()) {
     const { confirm } = await inquirer.prompt([
@@ -183,7 +177,7 @@ export const executeCommandHandler = async (args: {
   }
 
   try {
-    const { stdout, stderr } = await executeCommand(command, requiresSudo);
+    const { stdout, stderr } = await executeCommand(command, false);
 
     if (stderr) {
       logger.error(`Command error: ${stderr}`);

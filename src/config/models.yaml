@@ -15,8 +15,8 @@ openai:
 ollama:
   default: llama3
   models:
-    - name: Llama 3
-      value: llama3
+    - name: Llama 3.2
+      value: llama3.2
       pricing:
         input: 0.0 # Local models are free
         output: 0.0 # Local models are free

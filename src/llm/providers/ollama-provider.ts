@@ -1,7 +1,8 @@
-// @ts-nocheck
-import { Ollama } from "ollama";
+import axios from "axios";
 
-import { countTokens } from "../../utils/token-counter";
+import { logger } from "../../logger";
+import { countPromptTokens, countTokens } from "../../utils/token-counter";
+import { LLMProviderType } from "../index";
 import {
   LLMProvider,
   LLMProviderConfig,
@@ -9,335 +10,288 @@ import {
   MessageRole,
   CompletionOptions,
   CompletionResult,
+  TokenUsage,
+  FunctionCallResult,
   FunctionDefinition,
 } from "../interface";
 
+// Extended config for Ollama provider
+interface OllamaProviderConfig extends LLMProviderConfig {
+  baseUrl?: string;
+}
 
+// Extended options for Ollama
+interface OllamaOptions {
+  temperature?: number;
+  [key: string]: unknown;
+}
 
-/**
- * Ollama implementation of the LLM Provider interface
- */
 export class OllamaProvider implements LLMProvider {
-  private client: Ollama;
-  private model: string;
   private baseUrl: string;
+  private model: string;
 
-  /**
-   * Create a new Ollama provider
-   * @param config Configuration options for Ollama
-   */
-  constructor(config: LLMProviderConfig) {
-    this.baseUrl = config.apiEndpoint || "http://localhost:11434";
-    this.client = new Ollama({
-      host: this.baseUrl,
-    });
+  constructor(config: OllamaProviderConfig) {
+    this.baseUrl = config.baseUrl || "http://localhost:11434";
     this.model = config.model || "llama3";
   }
 
-  /**
-   * Get the current model being used by the provider
-   * @returns The model ID/name
-   */
   getModel(): string {
     return this.model;
   }
 
-  /**
-   * Generate a completion using Ollama's API
-   * @param messages Array of messages to process
-   * @param options Additional options like function definitions
-   * @returns The model's response text
-   */
-  async generateCompletion(
-    messages: Message[],
-    options?: CompletionOptions,
-  ): Promise<CompletionResult> {
-    try {
-      // Ollama doesn't directly support function calling like OpenAI, Claude, and Gemini
-      // So we'll add function definitions to the prompt if they exist
-      const ollamaMessages = this.mapToOllamaMessages(messages);
-      let prompt = ollamaMessages;
-
-      // If there are function definitions, add them to the prompt
-      if (options?.functions && options.functions.length > 0) {
-        prompt += "\n\nYou have access to the following functions:\n";
-
-        for (const func of options.functions) {
-          prompt += `\nFunction: ${func.name}\n`;
-          prompt += `Description: ${func.description}\n`;
-          prompt += "Parameters:\n";
-
-          for (const [key, value] of Object.entries(
-            func.parameters.properties,
-          )) {
-            const required = (func.parameters.required || []).includes(key)
-              ? "(required)"
-              : "(optional)";
-            prompt += `  - ${key}: ${value.type} ${required} - ${value.description || ""}\n`;
-          }
-
-          prompt += "\n";
-        }
-
-        prompt += "\nTo call a function, respond in the format:\n";
-        prompt +=
-          '```json\n{"function": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}}\n```\n\n';
+  private mapToOllamaMessages(
+    messages: Message<MessageRole>[]
+  ): { role: string; content: string; images?: string[] }[] {
+    const ollamaMessages: { role: string; content: string; images?: string[] }[] = [];
+    
+    messages.forEach((msg) => {
+      if (msg.role === "user" || msg.role === "system" || msg.role === "assistant") {
+        ollamaMessages.push({
+          role: msg.role,
+          content: msg.content as string,
+        });
       }
-
-      // Generate a response
-      const response = await this.client.chat({
-        model: this.model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-      });
-
-      // Extract content from response
-      const content = response.message.content;
-
-      // Check if response has a function call
-      const result: CompletionResult = { content };
-      const functionCallMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-
-      if (functionCallMatch) {
-        try {
-          const functionCallJson = JSON.parse(functionCallMatch[1]);
-          if (functionCallJson.function && functionCallJson.arguments) {
-            result.functionCall = {
-              name: functionCallJson.function,
-              arguments: functionCallJson.arguments,
-            };
-
-            // Remove the function call from content
-            result.content = content
-              .replace(/```json\s*([\s\S]*?)\s*```/, "")
-              .trim();
-          }
-        } catch (error) {
-          console.warn(
-            "Failed to parse function call from Ollama response",
-            error,
-          );
-        }
+      
+      // Handle function calls and results if needed
+      if (msg.role === "function") {
+        msg.content.forEach((call) => {
+          ollamaMessages.push({
+            role: "tool",
+            content: call.result + call.error,
+          });
+        });
       }
+    });
 
-      // Track token usage (Ollama may provide token stats in response)
-      const responseAny = response;
-      let inputTokens = 0;
-      let outputTokens = 0;
-
-      // Check if Ollama reports token usage
-      if (responseAny.prompt_eval_count && responseAny.eval_count) {
-        // Use model-reported token counts when available
-        inputTokens = responseAny.prompt_eval_count;
-        outputTokens = responseAny.eval_count;
-      } else {
-        // Fall back to tiktoken calculation
-        inputTokens = this.calculateInputTokens(messages, prompt);
-        outputTokens = countTokens(content, this.model);
-      }
-
-      // Add usage information to the response
-      result.usage = {
-        inputTokens,
-        outputTokens,
-        model: this.model,
-      };
-
-      return result;
-    } catch (error) {
-      console.error("Error processing with Ollama:", error);
-      throw new Error("Failed to generate completion with Ollama");
-    }
+    return ollamaMessages;
   }
 
-  /**
-   * Maps our messages format to Ollama's format
-   * @param messages Our standard message format
-   * @returns Formatted prompt for Ollama
-   */
-  private mapToOllamaMessages(messages: Message[]): string {
-    const systemPrompt =
-      messages.find((msg) => msg.role === MessageRole.SYSTEM)?.content || "";
-
-    // Format all messages in a way Ollama can understand
-    let prompt = "";
-
-    if (systemPrompt) {
-      prompt += `System: ${systemPrompt}\n\n`;
-    }
-
-    // Add all other messages
-    for (const msg of messages) {
-      if (msg.role === MessageRole.SYSTEM) continue;
-
-      switch (msg.role) {
-        case MessageRole.USER:
-          prompt += `User: ${msg.content}\n\n`;
-          break;
-        case MessageRole.ASSISTANT:
-          prompt += `Assistant: ${msg.content}\n\n`;
-          break;
-        case MessageRole.FUNCTION:
-          prompt += `Function ${msg.name || "unknown"} returned: ${msg.content}\n\n`;
-          break;
-      }
-    }
-
-    return prompt.trim();
+  private mapOllamaToolsToFunctionCall(toolCall: {
+    function: {
+      name: string;
+      arguments: Record<string, unknown>;
+    };
+  }): FunctionCallResult {
+    return {
+      name: toolCall.function.name,
+      arguments: toolCall.function.arguments || {},
+      callId: Date.now().toString(), // Ollama doesn't provide callId, generate one
+    };
   }
 
-  /**
-   * Calculate input tokens using tiktoken (used as fallback)
-   * @param messages Original messages array
-   * @param formattedPrompt The final formatted prompt sent to Ollama
-   * @returns Estimated token count
-   */
-  private calculateInputTokens(
-    messages: Message[],
-    formattedPrompt: string,
-  ): number {
-    // For Ollama, it's better to count the final formatted prompt
-    // since we add function definitions directly to the prompt
-    return countTokens(formattedPrompt, this.model);
+  private mapToOllamaTools(
+    functions: FunctionDefinition[]
+  ): Array<{ type: string; function: { name: string; description: string; parameters: Record<string, unknown> } }> {
+    return functions.map((func) => ({
+      type: "function",
+      function: {
+        name: func.name,
+        description: func.description,
+        parameters: func.parameters,
+      },
+    }));
   }
 
-  /**
-   * Generate a streaming completion using Ollama's API
-   * @param messages Array of messages to process
-   * @param onToken Callback function for each token received
-   * @param options Additional options like function definitions
-   * @returns The complete model's response text and any function calls
-   */
   async generateStreamingCompletion(
-    messages: Message[],
+    messages: Message<MessageRole>[],
     onToken: (token: string) => void,
-    options?: CompletionOptions,
+    options?: CompletionOptions
   ): Promise<CompletionResult> {
     try {
-      // Ollama doesn't directly support function calling like OpenAI, Claude, and Gemini
-      // So we'll add function definitions to the prompt if they exist
       const ollamaMessages = this.mapToOllamaMessages(messages);
-      let prompt = ollamaMessages;
+      const ollamaTools = options?.functions ? this.mapToOllamaTools(options.functions) : [];
 
-      // If there are function definitions, add them to the prompt
-      if (options?.functions && options.functions.length > 0) {
-        prompt += "\n\nYou have access to the following functions:\n";
+      const requestBody: {
+        model: string;
+        messages: { role: string; content: string; images?: string[] }[];
+        stream: boolean;
+        tools?: Array<{ type: string; function: { name: string; description: string; parameters: Record<string, unknown> } }>;
+        options?: OllamaOptions;
+      } = {
+        model: this.model,
+        messages: ollamaMessages,
+        stream: true,
+      };
 
-        for (const func of options.functions) {
-          prompt += `\nFunction: ${func.name}\n`;
-          prompt += `Description: ${func.description}\n`;
-          prompt += "Parameters:\n";
-
-          for (const [key, value] of Object.entries(
-            func.parameters.properties,
-          )) {
-            const required = (func.parameters.required || []).includes(key)
-              ? "(required)"
-              : "(optional)";
-            prompt += `  - ${key}: ${value.type} ${required} - ${value.description || ""}\n`;
-          }
-
-          prompt += "\n";
-        }
-
-        prompt += "\nTo call a function, respond in the format:\n";
-        prompt +=
-          '```json\n{"function": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}}\n```\n\n';
+      if (ollamaTools.length > 0) {
+        requestBody.tools = ollamaTools;
       }
 
-      // Initialize variables to track the complete response
-      let fullContent = "";
+      // Add custom Ollama options if needed
+      if (options) {
+        requestBody.options = {};
+        
+        // Add temperature if available through custom extension
+        if ('temperature' in options) {
+          requestBody.options.temperature = options.temperature as number;
+        }
+      }
+      
+      logger.debug(`Sending request to Ollama API at ${this.baseUrl}/api/chat`);
+      logger.debug(`Using model: ${this.model}`);
 
-      // Generate a streaming response
-      const stream = await this.client.chat({
-        model: this.model,
-        messages: [{ role: "user", content: prompt }],
-        stream: true,
+      const response = await axios.post(`${this.baseUrl}/api/chat`, requestBody, {
+        responseType: 'stream'
       });
 
-      // Process the stream
-      for await (const chunk of stream) {
-        const content = chunk.message?.content || "";
+      let fullContent = "";
+      let functionCalls: FunctionCallResult[] = [];
 
-        if (content) {
-          // Send the token to the callback
-          onToken(content);
-          // Accumulate the content
-          fullContent += content;
-        }
-      }
-
-      // Check if response has a function call
-      const result: CompletionResult = { content: fullContent };
-      const functionCallMatch = fullContent.match(/```json\s*([\s\S]*?)\s*```/);
-
-      if (functionCallMatch) {
-        try {
-          const functionCallJson = JSON.parse(functionCallMatch[1]);
-          if (functionCallJson.function && functionCallJson.arguments) {
-            // Update to match OpenAI provider's format with functionCalls array
-            result.functionCalls = [{
-              name: functionCallJson.function,
-              arguments: functionCallJson.arguments,
-              callId: `ollama-${Date.now()}` // Generate a unique ID
-            }];
-
-            // Remove the function call from content
-            result.content = fullContent
-              .replace(/```json\s*([\s\S]*?)\s*```/, "")
-              .trim();
+      // Handle streaming response
+      const stream = response.data as NodeJS.ReadableStream;
+      
+      return new Promise((resolve, reject) => {
+        let responseBuffer = '';
+        
+        stream.on('data', (chunk: Buffer) => {
+          const chunkStr = chunk.toString();
+          responseBuffer += chunkStr;
+          
+          // Process complete JSON objects from the buffer
+          let startIdx = 0;
+          let endIdx: number;
+          
+          while ((endIdx = responseBuffer.indexOf('\n', startIdx)) !== -1) {
+            const jsonStr = responseBuffer.substring(startIdx, endIdx).trim();
+            startIdx = endIdx + 1;
+            
+            if (jsonStr) {
+              try {
+                const data = JSON.parse(jsonStr);
+                
+                if (data.message?.content) {
+                  onToken(data.message.content);
+                  fullContent += data.message.content;
+                }
+                
+                if (data.message?.tool_calls) {
+                  functionCalls = data.message.tool_calls.map(
+                    this.mapOllamaToolsToFunctionCall
+                  );
+                }
+              } catch {
+                // Ignore incomplete JSON
+              }
+            }
           }
-        } catch (error) {
-          console.warn(
-            "Failed to parse function call from Ollama response",
-            error,
+          
+          // Keep the remaining part that might be an incomplete JSON
+          responseBuffer = responseBuffer.substring(startIdx);
+        });
+        
+        stream.on('end', () => {
+          const result: CompletionResult = { content: fullContent };
+          
+          if (functionCalls.length > 0) {
+            result.functionCalls = functionCalls;
+          }
+          
+          const usage: TokenUsage = {
+            inputTokens: this.estimateInputTokens(messages),
+            outputTokens: countTokens(fullContent, this.model),
+            model: this.model,
+          };
+          
+          result.usage = usage;
+          resolve(result);
+        });
+        
+        stream.on('error', (err: Error) => {
+          reject(new Error(`Failed to generate streaming completion with Ollama: ${err.message}`));
+        });
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        // Check if it's an Axios error by checking for response property
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { 
+            response?: { 
+              status?: number; 
+              data?: unknown;
+              statusText?: string;
+            }; 
+            message: string 
+          };
+          
+          // Handle Axios errors with more detail
+          const statusCode = axiosError.response?.status;
+          const statusText = axiosError.response?.statusText;
+          const errorMessage = axiosError.message;
+          
+          // Safely handle response data to avoid circular reference errors
+          let responseStr = '';
+          try {
+            const responseData = axiosError.response?.data;
+            if (responseData) {
+              // Handle different types of response data
+              if (typeof responseData === 'string') {
+                responseStr = `\nResponse: ${responseData}`;
+              } else if (typeof responseData === 'object') {
+                // Use a safer approach with try/catch for objects
+                try {
+                  responseStr = `\nResponse: ${JSON.stringify(responseData)}`;
+                } catch {
+                  responseStr = `\nResponse: [Complex object that couldn't be stringified]`;
+                }
+              }
+            }
+          } catch {
+            responseStr = `\nResponse: [Error accessing response data]`;
+          }
+          
+          // Add diagnostic info for common error codes
+          let diagnosticInfo = '';
+          if (statusCode === 400) {
+            diagnosticInfo = `\n\nPossible causes for 400 Bad Request:
+- Invalid model name '${this.model}'. Make sure the model is downloaded via 'ollama pull <model>'
+- Incorrect request format or parameters
+- Model not running or not available on the Ollama server
+- Ollama server is running but not responding correctly
+
+Try checking:
+1. Is Ollama running? Run 'ollama list' to see available models
+2. Can you connect to ${this.baseUrl}?
+3. Does the model '${this.model}' exist on your Ollama server?`;
+          } else if (statusCode === 404) {
+            diagnosticInfo = `\n\nThe Ollama API endpoint was not found. Is the Ollama server running at ${this.baseUrl}?`;
+          } else if (statusCode === 500) {
+            diagnosticInfo = `\n\nOllama server encountered an internal error. Check the Ollama server logs for more details.`;
+          }
+          
+          throw new Error(
+            `Ollama API error (${statusCode} ${statusText || ''}): ${errorMessage}${responseStr}${diagnosticInfo}`
+          );
+        }
+        throw new Error(`Failed to generate streaming completion with Ollama: ${error.message}`);
+      }
+      throw new Error(`Failed to generate streaming completion with Ollama: Unknown error`);
+    }
+  }
+
+  private estimateInputTokens(messages: Message<MessageRole>[]): number {
+    let totalTokens = 0;
+
+    for (const message of messages) {
+      if (message.role === "function") {
+        for (const call of message.content) {
+          totalTokens += countPromptTokens(
+            call.result + call.error,
+            LLMProviderType.OLLAMA,
+            this.model,
+          );
+        }
+      } else {
+        if (typeof message.content === "string") {
+          totalTokens += countTokens(message.content, this.model);
+        } else {
+          totalTokens += countTokens(
+            JSON.stringify(message.content),
+            this.model,
           );
         }
       }
-
-      // Calculate token usage - stream doesn't provide this information
-      // so we need to estimate it
-      const inputTokens = this.calculateInputTokens(messages, prompt);
-      const outputTokens = countTokens(result.content, this.model);
-
-      // Add usage information to the response
-      result.usage = {
-        inputTokens,
-        outputTokens,
-        model: this.model,
-      };
-
-      return result;
-    } catch (error) {
-      console.error("Error processing streaming with Ollama:", error);
-      throw new Error("Failed to generate streaming completion with Ollama");
     }
-  }
 
-  // Add helper method similar to OpenAI provider
-  private mapToOllamaToolMessages(functions: FunctionDefinition[]): string {
-    if (!functions || functions.length === 0) return '';
-    
-    let prompt = "\n\nYou have access to the following functions:\n";
-    
-    for (const func of functions) {
-      prompt += `\nFunction: ${func.name}\n`;
-      prompt += `Description: ${func.description}\n`;
-      prompt += "Parameters:\n";
-      
-      for (const [key, value] of Object.entries(func.parameters.properties)) {
-        const required = (func.parameters.required || []).includes(key)
-          ? "(required)"
-          : "(optional)";
-        prompt += `  - ${key}: ${value.type} ${required} - ${value.description || ""}\n`;
-      }
-      
-      prompt += "\n";
-    }
-    
-    prompt += "\nTo call a function, respond in the format:\n";
-    prompt += '```json\n{"function": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}}\n```\n\n';
-    
-    return prompt;
+    return totalTokens;
   }
-}
+} 
