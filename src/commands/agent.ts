@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import ora from "ora";
+import os from "os";
 import { createLLMProvider } from "../llm";
 import { CommandProcessor } from "../services";
 import { MessageRole, Message, TokenUsage } from "../llm/interface";
@@ -21,10 +22,58 @@ import { SQLiteSessionManager, Thread } from "../session-manager";
 
 // Constants
 const costTracker = new CumulativeCostTracker();
-const AGENT_SYSTEM_PROMPT = `You are a helpful terminal agent. Help the user accomplish their tasks by executing terminal commands.
-  if user have any queries and commans try to figureout the best way to do it and use the execute_command function to run commands
-  if the command execution fails, try to figureout the issue and resolve it
-  Keep responses concise and focused on the user's goal.`;
+
+/**
+ * Gets detailed system information using the os module
+ * @returns A formatted string with system information
+ */
+function getSystemInfoFromOS(): string {
+  const osType = os.type();
+  const osRelease = os.release();
+  const osPlatform = os.platform();
+  const osArch = os.arch();
+  const totalMemory = Math.round(os.totalmem() / (1024 * 1024 * 1024));
+  const freeMemory = Math.round(os.freemem() / (1024 * 1024 * 1024));
+  const cpuInfo = os.cpus()[0]?.model || 'Unknown CPU';
+  const cpuCores = os.cpus().length;
+  const uptime = Math.round(os.uptime() / 3600);
+  const hostname = os.hostname();
+  const username = os.userInfo().username;
+  const homedir = os.homedir();
+  const shell = os.userInfo().shell || 'Unknown shell';
+  
+  return `
+OS: ${osType} ${osRelease} (${osPlatform} ${osArch})
+Hostname: ${hostname}
+Username: ${username}
+Home directory: ${homedir}
+Shell: ${shell}
+CPU: ${cpuInfo} (${cpuCores} cores)
+Memory: ${freeMemory}GB free of ${totalMemory}GB total
+Uptime: ${uptime} hours
+`;
+}
+
+const AGENT_SYSTEM_PROMPT_TEMPLATE = `You are a helpful terminal AI assistant. Help the user accomplish their tasks by executing terminal commands.
+
+SYSTEM INFORMATION:
+{{systemInfo}}
+
+CAPABILITIES:
+- Execute terminal commands to help users complete their tasks
+- Provide information about files, directories, and system status
+- Handle errors gracefully and suggest solutions
+- Explain commands and their options when needed
+
+GUIDELINES:
+- Be concise, precise, and helpful in your responses
+- For complex operations, explain what you're doing before executing commands
+- Prioritize safe operations; warn about potentially dangerous commands
+- If a command execution fails, troubleshoot the issue and suggest alternatives
+- When appropriate, suggest better ways to accomplish the user's goal
+
+When the user asks a question or needs assistance, figure out the best way to help them, including using commands when necessary.`;
+
 const EXIT_COMMANDS = ["\exit", "\quit", "\q"];
 const HELP_COMMAND = "\help";
 const PROMPT_SYMBOL = chalk.green(">> ");
@@ -95,6 +144,15 @@ export async function runAgentMode({
     functionCallProcessor.registerFunction(
       getSystemInfoFunction,
       getSystemInfoHandler,
+    );
+
+    // Get system information using the OS module
+    const systemInfo = getSystemInfoFromOS();
+    
+    // Create the system prompt with system information
+    const AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_TEMPLATE.replace(
+      "{{systemInfo}}",
+      systemInfo
     );
 
     const llmProvider = createLLMProvider();

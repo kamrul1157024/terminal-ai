@@ -1,10 +1,11 @@
 import { FunctionDefinition } from "../llm/interface";
-import { exec } from "child_process";
+import { exec, ExecOptions } from "child_process";
 import { promisify } from "util";
 import inquirer from "inquirer";
 import { logger } from "../utils/logger";
 import { isSystemQueryingCommand } from "../utils";
 import { getAutopilot } from "../utils/context-vars";
+import * as os from "os";
 
 const execPromise = promisify(exec);
 
@@ -28,16 +29,89 @@ export const executeCommandFunction: FunctionDefinition = {
   },
 };
 
+// Detect default shell once at module level
+let defaultShell: string | null = null;
+
+// Function to get the user's default shell
+const getDefaultShell = async (): Promise<string> => {
+  if (defaultShell) return defaultShell;
+  
+  const platform = os.platform();
+  
+  if (platform === 'win32') {
+    defaultShell = 'powershell.exe';
+    return defaultShell;
+  }
+  
+  try {
+    // Use direct command execution to avoid recursive calls
+    const shell = execPromise('echo $SHELL', { shell: '/bin/sh' })
+      .then(result => result.stdout.trim())
+      .catch(() => {
+        // Fallback to common shells based on platform
+        if (platform === 'darwin') return '/bin/zsh';
+        return '/bin/bash';
+      });
+    
+    defaultShell = await shell;
+    return defaultShell;
+  } catch (e) {
+    // Default fallbacks
+    if (platform === 'darwin') {
+      defaultShell = '/bin/zsh';
+    } else {
+      defaultShell = '/bin/bash';
+    }
+    return defaultShell;
+  }
+};
+
 async function executeCommand(
   command: string,
   requiresSudo: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
   try {
+    // Preserve multiline commands by ensuring they're properly formatted
+    const formattedCommand = command.trim();
+    
+    // Determine appropriate shell and sudo based on OS
+    const platform = os.platform();
+    const isWindows = platform === 'win32';
+    
+    // Get shell based on platform
+    const shell = await getDefaultShell();
+    
+    // Options to ensure proper shell interpretation of multiline commands
+    const execOptions: ExecOptions = {
+      shell,
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
+    };
+    
     if (requiresSudo) {
-      const { stdout, stderr } = await execPromise(`sudo ${command}`);
-      return { stdout, stderr };
+      if (isWindows) {
+        // On Windows, use PowerShell with elevated privileges
+        try {
+          // For Windows, we need to handle elevated privileges differently
+          // This approach uses a temporary VBS script to request elevation
+          const escapedCommand = formattedCommand.replace(/"/g, '\\"');
+          
+          // For simplicity and security, we'll just warn the user
+          return { 
+            stdout: "", 
+            stderr: "Administrator privileges are required. Please run this command manually with admin rights." 
+          };
+        } catch (error: any) {
+          return { stdout: "", stderr: `Failed to run with admin privileges: ${error.message}` };
+        }
+      } else {
+        // Unix-based systems use sudo
+        const { stdout, stderr } = await execPromise(`sudo ${formattedCommand}`, execOptions);
+        return { stdout, stderr };
+      }
     }
-    const { stdout, stderr } = await execPromise(command);
+    
+    // Regular command execution (no sudo)
+    const { stdout, stderr } = await execPromise(formattedCommand, execOptions);
     return { stdout, stderr };
   } catch (error: any) {
     return { stdout: "", stderr: `Command failed: ${error.message}` };
