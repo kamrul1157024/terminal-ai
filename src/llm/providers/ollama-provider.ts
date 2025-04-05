@@ -9,6 +9,7 @@ import {
   MessageRole,
   CompletionOptions,
   CompletionResult,
+  FunctionDefinition,
 } from "../interface";
 
 
@@ -274,10 +275,12 @@ export class OllamaProvider implements LLMProvider {
         try {
           const functionCallJson = JSON.parse(functionCallMatch[1]);
           if (functionCallJson.function && functionCallJson.arguments) {
-            result.functionCall = {
+            // Update to match OpenAI provider's format with functionCalls array
+            result.functionCalls = [{
               name: functionCallJson.function,
               arguments: functionCallJson.arguments,
-            };
+              callId: `ollama-${Date.now()}` // Generate a unique ID
+            }];
 
             // Remove the function call from content
             result.content = fullContent
@@ -292,21 +295,10 @@ export class OllamaProvider implements LLMProvider {
         }
       }
 
-      // Track token usage (Ollama may provide token stats in response)
-      const responseAny = stream;
-      let inputTokens = 0;
-      let outputTokens = 0;
-
-      // Check if Ollama reports token usage
-      if (responseAny.prompt_eval_count && responseAny.eval_count) {
-        // Use model-reported token counts when available
-        inputTokens = responseAny.prompt_eval_count;
-        outputTokens = responseAny.eval_count;
-      } else {
-        // Fall back to tiktoken calculation
-        inputTokens = this.calculateInputTokens(messages, prompt);
-        outputTokens = countTokens(result.content, this.model);
-      }
+      // Calculate token usage - stream doesn't provide this information
+      // so we need to estimate it
+      const inputTokens = this.calculateInputTokens(messages, prompt);
+      const outputTokens = countTokens(result.content, this.model);
 
       // Add usage information to the response
       result.usage = {
@@ -320,5 +312,32 @@ export class OllamaProvider implements LLMProvider {
       console.error("Error processing streaming with Ollama:", error);
       throw new Error("Failed to generate streaming completion with Ollama");
     }
+  }
+
+  // Add helper method similar to OpenAI provider
+  private mapToOllamaToolMessages(functions: FunctionDefinition[]): string {
+    if (!functions || functions.length === 0) return '';
+    
+    let prompt = "\n\nYou have access to the following functions:\n";
+    
+    for (const func of functions) {
+      prompt += `\nFunction: ${func.name}\n`;
+      prompt += `Description: ${func.description}\n`;
+      prompt += "Parameters:\n";
+      
+      for (const [key, value] of Object.entries(func.parameters.properties)) {
+        const required = (func.parameters.required || []).includes(key)
+          ? "(required)"
+          : "(optional)";
+        prompt += `  - ${key}: ${value.type} ${required} - ${value.description || ""}\n`;
+      }
+      
+      prompt += "\n";
+    }
+    
+    prompt += "\nTo call a function, respond in the format:\n";
+    prompt += '```json\n{"function": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}}\n```\n\n';
+    
+    return prompt;
   }
 }
