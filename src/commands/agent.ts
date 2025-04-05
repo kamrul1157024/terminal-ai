@@ -1,19 +1,21 @@
-import inquirer from "inquirer";
-import chalk from "chalk";
 import os from "os";
+
+import chalk from "chalk";
+import inquirer from "inquirer";
+
+import { ExecuteCommand } from "../functions";
+import { FunctionManager } from "../functions/manager";
 import { createLLMProvider } from "../llm";
 import { TokenUsage } from "../llm/interface";
-import { SystemInfo, ExecuteCommand } from "../functions";
-import { FunctionManager } from "../functions/manager";
+import { logger } from "../logger";
+import { Thread } from "../repositories";
+import { SQLiteThreadRepository } from "../repositories";
+import { LLM } from "../services/llm";
 import {
   CumulativeCostTracker,
   displayCostInfo,
 } from "../services/pricing";
 import { getShowCostInfo } from "../utils/context-vars";
-import { Thread } from "../repositories";
-import { SQLiteThreadRepository } from "../repositories";
-import { LLM } from "../services/llm";
-import { logger } from "../logger";
 const costTracker = new CumulativeCostTracker();
 
 function getSystemInfoFromOS(): string {
@@ -64,8 +66,8 @@ GUIDELINES:
 
 When the user asks a question or needs assistance, figure out the best way to help them, including using commands when necessary.`;
 
-const EXIT_COMMANDS = ["\exit", "\quit", "\q"];
-const HELP_COMMAND = "\help";
+const EXIT_COMMANDS = ["exit", "quit", "q"];
+const HELP_COMMAND = "help";
 const PROMPT_SYMBOL = chalk.green(">> ");
 const EMPTY_INPUT_MESSAGE = chalk.yellow(
   "Please enter a command or question. Type \\help for available commands.",
@@ -73,8 +75,8 @@ const EMPTY_INPUT_MESSAGE = chalk.yellow(
 const EXIT_MESSAGE = chalk.blue("Exiting agent mode");
 const HELP_MESSAGE = chalk.cyan(`
 Available commands:
-  \\exit, \\quit, \\q - Exit agent mode
-  \\help - Show this help message
+  exit, quit, q - Exit agent mode
+  help - Show this help message
 `);
 
 /**
@@ -120,8 +122,6 @@ export interface AgentModeOptions {
   threadId?: string;
 }
 
-function printAIResponse(responseText: string) {}
-
 export async function runAgentMode({
   input,
   context,
@@ -132,10 +132,6 @@ export async function runAgentMode({
     functionManager.registerFunction(
       ExecuteCommand.executeCommandFunction,
       ExecuteCommand.executeCommandHandler,
-    );
-    functionManager.registerFunction(
-      SystemInfo.getSystemInfoFunction,
-      SystemInfo.getSystemInfoHandler,
     );
 
     // Get system information using the OS module
@@ -234,24 +230,20 @@ export async function runAgentMode({
     };
 
     while (true) {
-      // Print a separator between conversations
       if (conversationHistory.length > 0) {
         const lastMessage = conversationHistory[conversationHistory.length - 1];
         if (lastMessage.role === "user") {
           logger.info(
             chalk.bold.cyan("\nYou: ") +
-              chalk.white(lastMessage.content) +
-              "\n",
+            chalk.white(lastMessage.content) +
+            "\n",
           );
         }
       }
 
-      let responseText = "";
-
       const { history, usage } = await llm.generateStreamingCompletion({
         input: userInput,
         onToken: (token: string) => {
-          responseText += token;
           process.stdout.write(chalk.white(token));
           return;
         },

@@ -1,19 +1,20 @@
+import chalk from "chalk";
 import ora from "ora";
+
+import { FunctionManager } from "../functions/manager";
 import {
   LLMProvider,
   Message,
   MessageRole,
   CompletionOptions,
-  FunctionCallResponse,
   TokenUsage,
 } from "../llm/interface";
-import { FunctionManager } from "../functions/manager";
-import chalk from "chalk";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
   "Respond with ONLY the terminal command, nothing else.";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
 
 export class LLM {

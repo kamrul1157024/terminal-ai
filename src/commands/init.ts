@@ -1,7 +1,15 @@
 import inquirer from "inquirer";
+
 import { Config, ModelConfig } from "../config";
 import { LLMProviderType } from "../llm";
 import { logger } from "../logger";
+
+type AIConfig = {
+  provider: LLMProviderType;
+  model: string;
+  apiKey?: string;
+  apiEndpoint?: string;
+};
 
 /**
  * Initialize the Terminal AI CLI by setting up the config
@@ -94,7 +102,7 @@ export async function initCommand(): Promise<void> {
     }
 
     // Save the config
-    const config: any = {
+    const config: AIConfig = {
       provider,
       model,
     };

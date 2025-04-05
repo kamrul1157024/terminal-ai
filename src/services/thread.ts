@@ -1,14 +1,15 @@
-import { logger } from "../logger";
-import * as Output from "../ui/output";
 import { runAgentMode } from "../commands/agent";
+import { logger } from "../logger";
+import { SQLiteThreadRepository } from "../repositories";
+import { Thread } from "../repositories";
+import { CumulativeCostTracker } from "../services/pricing";
+import * as Output from "../ui/output";
 import {
   runWithContext,
   setAutoApprove,
   setCostTracker,
   setShowCostInfo,
 } from "../utils/context-vars";
-import { CumulativeCostTracker } from "../services/pricing";
-import { SQLiteThreadRepository } from "../repositories";
 
 /**
  * Lists all threads in the system
@@ -42,7 +43,7 @@ export async function listThreads(options: { filter?: string }) {
       return;
     }
 
-    await handleThreadSelection(threads, filteredThreads);
+    await handleThreadSelection(filteredThreads);
   } catch (error) {
     // Check if this is an exit prompt error (from Ctrl+C)
     if (
@@ -63,15 +64,13 @@ export async function listThreads(options: { filter?: string }) {
  * Handles thread selection process
  */
 async function handleThreadSelection(
-  allThreads: any[],
-  displayedThreads: any[],
+  displayedThreads: Thread[],
 ) {
   try {
     const selectedThreadId =
       await Output.promptThreadSelection(displayedThreads);
     await attachToThread(selectedThreadId);
   } catch (error) {
-    // Check if this is an exit prompt error (from Ctrl+C)
     if (
       error instanceof Error &&
       (error.name === "ExitPromptError" ||

@@ -1,9 +1,8 @@
-import { LLMProvider, LLMProviderConfig } from "./interface";
-import { OpenAIProvider } from "./providers/openai-provider";
-import { ClaudeProvider } from "./providers/claude-provider";
-import { GeminiProvider } from "./providers/gemini-provider";
-import { OllamaProvider } from "./providers/ollama-provider";
 import { readConfig } from "../config/config";
+
+import { LLMProvider, LLMProviderConfig } from "./interface";
+import { OllamaProvider } from "./providers/ollama-provider";
+import { OpenAIProvider } from "./providers/openai-provider";
 
 export enum LLMProviderType {
   OPENAI = "openai",
@@ -35,10 +34,6 @@ export function createLLMProvider(
   switch (type) {
     case LLMProviderType.OPENAI:
       return new OpenAIProvider(config);
-    case LLMProviderType.CLAUDE:
-      return new ClaudeProvider(config);
-    case LLMProviderType.GEMINI:
-      return new GeminiProvider(config);
     case LLMProviderType.OLLAMA:
       return new OllamaProvider(config);
     default:

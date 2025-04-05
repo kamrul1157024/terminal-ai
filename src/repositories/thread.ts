@@ -1,24 +1,22 @@
-import Database from "better-sqlite3";
 import path from "path";
+
+import Database from "better-sqlite3";
 import { v4 as uuidv4 } from "uuid";
-import { ThreadRepository, Thread } from "./types";
-import {
-  Message,
-  MessageRole,
-  FunctionCallResponse,
-  FunctionCallResult,
-} from "../llm/interface";
+
+import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 
+import { ThreadRepository, Thread } from "./types";
+
 // Define interfaces for database row types
-interface ThreadRow {
+type ThreadRow = {
   id: string;
   name: string;
   created_at: string;
   updated_at: string;
 }
 
-interface MessageRow {
+type MessageRow = {
   id: string;
   thread_id: string;
   role: string;
@@ -59,7 +57,7 @@ class MessageSerializer {
         role: role as MessageRole,
         content: parsedContent,
       } as Message<MessageRole>;
-    } catch (e) {
+    } catch {
       // Fallback to string content if JSON parsing fails
       return {
         role: role as MessageRole,

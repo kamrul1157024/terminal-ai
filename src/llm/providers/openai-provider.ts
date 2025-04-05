@@ -1,4 +1,7 @@
 import OpenAI from "openai";
+
+import { countPromptTokens, countTokens } from "../../utils/token-counter";
+import { LLMProviderType } from "../index";
 import {
   LLMProvider,
   LLMProviderConfig,
@@ -10,8 +13,6 @@ import {
   FunctionCallResult,
   FunctionDefinition,
 } from "../interface";
-import { LLMProviderType } from "../index";
-import { countPromptTokens, countTokens } from "../../utils/token-counter";
 
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
@@ -103,7 +104,13 @@ export class OpenAIProvider implements LLMProvider {
     }));
   }
 
-  mapOpenAIToolsCallTOGenericFunctionCall(toolCall: any): FunctionCallResult {
+  mapOpenAIToolsCallTOGenericFunctionCall(toolCall: {
+    function: {
+      name: string;
+      arguments: string;
+    };
+    id: string;
+  }): FunctionCallResult {
     return {
       name: toolCall.function.name,
       arguments: toolCall.function.arguments
@@ -133,8 +140,10 @@ export class OpenAIProvider implements LLMProvider {
       let fullContent = "";
       const stream = await this.client.chat.completions.create(requestParams);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const toolCallMap: Record<string, any> = {};
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for await (const chunk of stream as any) {
         const content = chunk.choices[0]?.delta?.content || "";
 
@@ -145,6 +154,7 @@ export class OpenAIProvider implements LLMProvider {
 
         const toolCalls = chunk.choices[0]?.delta?.tool_calls;
         if (toolCalls && toolCalls.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           toolCalls.forEach((toolCall: any) => {
             if (toolCall.function.name) {
               toolCallMap[toolCall.index] = toolCall;
@@ -174,7 +184,7 @@ export class OpenAIProvider implements LLMProvider {
       result.usage = usage;
 
       return result;
-    } catch (error) {
+    } catch {
       throw new Error("Failed to generate streaming completion with OpenAI");
     }
   }

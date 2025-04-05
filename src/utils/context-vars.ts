@@ -1,10 +1,10 @@
 import { AsyncLocalStorage } from "async_hooks";
+
 import { CumulativeCostTracker } from "../services/pricing";
 type Store = {
-  autopilot: boolean;
   costTracker: CumulativeCostTracker;
   showCostInfo: boolean;
-  [key: string]: any;
+  autoApprove: boolean;
 };
 
 const contextVars = new AsyncLocalStorage<Store>();

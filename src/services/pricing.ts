@@ -1,6 +1,7 @@
-import { TokenUsage } from "../llm/interface";
-import { calculateCost } from "../config/model-config";
 import chalk from "chalk";
+
+import { calculateCost } from "../config/model-config";
+import { TokenUsage } from "../llm/interface";
 import { logger } from "../logger";
 
 function formatCost(cost: number): string {

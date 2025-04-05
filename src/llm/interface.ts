@@ -14,18 +14,18 @@ export type FunctionCallResponse = {
 
 export type Message<T extends MessageRole> = T extends "function"
   ? {
-      role: T;
-      content: FunctionCallResponse[];
-    }
+    role: T;
+    content: FunctionCallResponse[];
+  }
   : T extends "function_call"
-    ? {
-        role: T;
-        content: FunctionCallResult[];
-      }
-    : {
-        role: T;
-        content: string;
-      };
+  ? {
+    role: T;
+    content: FunctionCallResult[];
+  }
+  : {
+    role: T;
+    content: string;
+  };
 
 export type FunctionParameter = {
   type: string;
@@ -48,10 +48,12 @@ export type FunctionDefinition = {
 
 export type FunctionCallResult = {
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   arguments: Record<string, any>;
   callId: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FunctionHandler = (args: any) => any;
 
 export type CompletionOptions = {
@@ -85,5 +87,4 @@ export type LLMProviderConfig = {
   apiKey?: string;
   model?: string;
   apiEndpoint?: string;
-  [key: string]: any;
 };

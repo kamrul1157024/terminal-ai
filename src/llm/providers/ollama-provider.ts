@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { Ollama } from "ollama";
+
+import { countTokens } from "../../utils/token-counter";
 import {
   LLMProvider,
   LLMProviderConfig,
@@ -7,12 +9,9 @@ import {
   MessageRole,
   CompletionOptions,
   CompletionResult,
-  FunctionDefinition,
-  TokenUsage,
-  FunctionCallResult,
 } from "../interface";
-import { LLMProviderType } from "../index";
-import { countPromptTokens, countTokens } from "../../utils/token-counter";
+
+
 
 /**
  * Ollama implementation of the LLM Provider interface
@@ -121,7 +120,7 @@ export class OllamaProvider implements LLMProvider {
       }
 
       // Track token usage (Ollama may provide token stats in response)
-      const responseAny = response as any;
+      const responseAny = response;
       let inputTokens = 0;
       let outputTokens = 0;
 
@@ -247,7 +246,6 @@ export class OllamaProvider implements LLMProvider {
 
       // Initialize variables to track the complete response
       let fullContent = "";
-      let functionCall: FunctionCallResult | undefined;
 
       // Generate a streaming response
       const stream = await this.client.chat({
@@ -295,7 +293,7 @@ export class OllamaProvider implements LLMProvider {
       }
 
       // Track token usage (Ollama may provide token stats in response)
-      const responseAny = stream as any;
+      const responseAny = stream;
       let inputTokens = 0;
       let outputTokens = 0;
 

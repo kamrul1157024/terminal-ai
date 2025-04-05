@@ -1,11 +1,14 @@
-import { FunctionDefinition } from "../llm/interface";
 import { exec, ExecOptions } from "child_process";
+import * as os from "os";
 import { promisify } from "util";
+
 import inquirer from "inquirer";
+
+import { FunctionDefinition } from "../llm/interface";
 import { logger } from "../logger";
 import { isSystemQueryingCommand } from "../utils";
 import { getAutoApprove } from "../utils/context-vars";
-import * as os from "os";
+
 
 const execPromise = promisify(exec);
 
@@ -55,8 +58,7 @@ const getDefaultShell = async (): Promise<string> => {
 
     defaultShell = await shell;
     return defaultShell;
-  } catch (e) {
-    // Default fallbacks
+  } catch {
     if (platform === "darwin") {
       defaultShell = "/bin/zsh";
     } else {
@@ -124,24 +126,11 @@ async function executeCommand(
 
     if (requiresSudo) {
       if (isWindows) {
-        // On Windows, use PowerShell with elevated privileges
-        try {
-          // For Windows, we need to handle elevated privileges differently
-          // This approach uses a temporary VBS script to request elevation
-          const escapedCommand = executableCommand.replace(/"/g, '\\"');
-
-          // For simplicity and security, we'll just warn the user
-          return {
-            stdout: "",
-            stderr:
-              "Administrator privileges are required. Please run this command manually with admin rights.",
-          };
-        } catch (error: any) {
-          return {
-            stdout: "",
-            stderr: `Failed to run with admin privileges: ${error.message}`,
-          };
-        }
+        return {
+          stdout: "",
+          stderr:
+            "Administrator privileges are required. Please run this command manually with admin rights.",
+        };
       } else {
         // Unix-based systems use sudo
         const { stdout, stderr } = await execPromise(
@@ -158,8 +147,11 @@ async function executeCommand(
       execOptions,
     );
     return { stdout, stderr };
-  } catch (error: any) {
-    return { stdout: "", stderr: `Command failed: ${error.message}` };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { stdout: "", stderr: `Command failed: ${error.message}` };
+    }
+    return { stdout: "", stderr: `Command failed: ${String(error)}` };
   }
 }
 
@@ -199,8 +191,8 @@ export const executeCommandHandler = async (args: {
 
     logger.info(stdout);
     return { stdout, stderr };
-  } catch (error: any) {
-    if (error.code !== 0) {
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code !== 0) {
       logger.error(`Command failed with error: ${error.message}`);
 
       const { useSudo } = await inquirer.prompt([

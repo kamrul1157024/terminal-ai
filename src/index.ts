@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+
 import { initCommand } from "./commands/init";
-import * as Input from "./ui/input";
 import { ThreadManager } from "./services";
+import * as Input from "./ui/input";
+
 // Package version from package.json
 const packageJson = require("../package.json");
 

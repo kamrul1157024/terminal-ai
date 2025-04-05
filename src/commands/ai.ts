@@ -1,11 +1,11 @@
+import { ExecuteCommand } from "../functions";
+import { FunctionManager } from "../functions/manager";
 import { createLLMProvider } from "../llm";
-import { ExecuteCommand, SystemInfo } from "../functions";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
-import { FunctionManager } from "../functions/manager";
+import { LLM } from "../services/llm";
 import { displayCostInfo } from "../services/pricing";
 import { getShowCostInfo } from "../utils/context-vars";
-import { LLM } from "../services/llm";
 
 const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.`;
 
@@ -27,10 +27,6 @@ export async function processAiCommand(
 
     const llmProvider = createLLMProvider();
     const functionManager = new FunctionManager();
-    functionManager.registerFunction(
-      SystemInfo.getSystemInfoFunction,
-      SystemInfo.getSystemInfoHandler,
-    );
 
     functionManager.registerFunction(
       ExecuteCommand.executeCommandFunction,

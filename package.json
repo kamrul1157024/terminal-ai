@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "AI-powered terminal command interpreter",
   "main": "dist/index.js",
+  "type": "module",
   "license": "MIT",
   "bin": {
     "ai": "./dist/index.js"
@@ -18,7 +19,9 @@
     "rebuild": "npm run clean && npm run build",
     "setup": "npm install && npm run build",
     "watch": "chokidar \"src/**/*.{ts,json,yaml,yml}\" -c \"npm run install:global\"",
-    "format": "prettier --write \"src/**/*.{ts,json,yaml,yml}\""
+    "format": "prettier --write \"src/**/*.{ts,json,yaml,yml}\"",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -46,6 +49,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.24.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
     "better-sqlite3": "^11.9.1",
     "chalk": "4.1.2",
@@ -70,8 +74,12 @@
     "@types/marked-terminal": "^6.1.1",
     "@types/uuid": "^10.0.0",
     "@types/yaml": "^1.9.7",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
     "chokidar": "^4.0.3",
     "copyfiles": "^2.4.1",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
     "ts-node": "^10.9.2"
   }
 }

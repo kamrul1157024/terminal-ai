@@ -1,6 +1,6 @@
 import { Message, MessageRole } from "../llm/interface";
 
-export interface Thread {
+export type Thread = {
   id: string;
   name: string;
   createdAt: Date;

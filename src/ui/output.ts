@@ -1,18 +1,18 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { logger } from "../logger";
 
+import { Message, MessageRole } from "../llm/interface";
+import { logger } from "../logger";
+import { Thread } from "../repositories";
 /**
  * Displays a list of threads
  */
-export function displayThreadsList(threads: any[]) {
+export function displayThreadsList(threads: Thread[]) {
   logger.info(chalk.bold.blue("\n📋 Conversation Threads"));
   logger.info(chalk.blue("=====================\n"));
 
-  // Format threads for display
   const formattedThreads = formatThreadsForDisplay(threads);
 
-  // Display threads
   formattedThreads.forEach((thread) => {
     logger.info(`${chalk.cyan(thread.index)}. ${thread.displayString}`);
   });
@@ -21,7 +21,7 @@ export function displayThreadsList(threads: any[]) {
 /**
  * Formats thread data for display
  */
-export function formatThreadsForDisplay(threads: any[]) {
+export function formatThreadsForDisplay(threads: Thread[]) {
   return threads.map((thread, index) => {
     const messageCount = thread.messages.length;
     const lastUpdate = thread.updatedAt.toLocaleString();
@@ -40,14 +40,14 @@ export function formatThreadsForDisplay(threads: any[]) {
 /**
  * Displays the conversation history of a thread
  */
-export function displayConversationHistory(thread: any) {
+export function displayConversationHistory(thread: Thread) {
   // Print the existing conversation
   if (thread.messages.length > 0) {
     logger.info(chalk.bold.blue("\nConversation history:"));
     logger.info(chalk.blue("===================="));
 
     // Display conversation history
-    thread.messages.forEach((message: any) => {
+    thread.messages.forEach((message: Message<MessageRole>) => {
       const role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
       if (message.role === "user") {
         logger.info(`\n${chalk.green(`${role}:`)} ${message.content}`);
@@ -85,7 +85,7 @@ export async function promptThreadAction(): Promise<string> {
 /**
  * Prompts user to select a thread
  */
-export async function promptThreadSelection(threads: any[]): Promise<string> {
+export async function promptThreadSelection(threads: Thread[]): Promise<string> {
   const formattedThreads = formatThreadsForDisplay(threads);
 
   // Add SIGINT (Ctrl+C) handler

@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+
 import YAML from "yaml";
+
 import { LLMProviderType } from "../llm";
 
 // Model configuration interfaces
@@ -24,13 +26,6 @@ export interface ModelsConfig {
   [key: string]: ProviderModelConfig;
 }
 
-// Path to the models config file
-const MODELS_CONFIG_PATH = path.join(__dirname, "../../src/config/models.yaml");
-
-/**
- * Read the models configuration from YAML file
- * @returns The models configuration object or null if not found
- */
 export function readModelsConfig(): ModelsConfig | null {
   try {
     const configPath = path.resolve(__dirname, "../config/models.yaml");
@@ -49,11 +44,6 @@ export function readModelsConfig(): ModelsConfig | null {
   }
 }
 
-/**
- * Get models for a specific provider
- * @param provider Provider type
- * @returns Array of model configurations for the provider
- */
 export function getProviderModels(provider: LLMProviderType): ModelConfig[] {
   const config = readModelsConfig();
   if (!config || !config[provider]) {
@@ -63,11 +53,6 @@ export function getProviderModels(provider: LLMProviderType): ModelConfig[] {
   return config[provider].models;
 }
 
-/**
- * Get the default model for a provider
- * @param provider Provider type
- * @returns Default model value
- */
 export function getDefaultModel(provider: LLMProviderType): string {
   const config = readModelsConfig();
   if (!config || !config[provider]) {
@@ -89,11 +74,6 @@ export function getDefaultModel(provider: LLMProviderType): string {
   return config[provider].default;
 }
 
-/**
- * Get model configuration by model value
- * @param modelValue The model value/ID
- * @returns Model configuration or null if not found
- */
 export function getModelByValue(modelValue: string): ModelConfig | null {
   const config = readModelsConfig();
   if (!config) return null;
@@ -106,13 +86,6 @@ export function getModelByValue(modelValue: string): ModelConfig | null {
   return null;
 }
 
-/**
- * Calculate the cost based on tokens used and model pricing
- * @param modelValue Model ID/value
- * @param inputTokens Number of input tokens
- * @param outputTokens Number of output tokens
- * @returns The cost in USD
- */
 export function calculateCost(
   modelValue: string,
   inputTokens: number,

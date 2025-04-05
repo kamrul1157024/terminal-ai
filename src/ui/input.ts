@@ -4,14 +4,20 @@ import { initCommand } from "../commands/init";
 import { Config } from "../config";
 import { logger } from "../logger";
 import "../config/model-config"; // Ensure model config is loaded
+import { CumulativeCostTracker } from "../services/pricing";
 import {
   runWithContext,
   setAutoApprove,
   setCostTracker,
   setShowCostInfo,
 } from "../utils/context-vars";
-import { CumulativeCostTracker } from "../services/pricing";
 
+type ProcessAICommandOptions = {
+  autoApprove: boolean;
+  cost: boolean;
+  agent: boolean;
+  thread: string;
+};
 /**
  * Reads content from stdin if data is being piped
  */
@@ -43,7 +49,7 @@ export async function readFromStdin(): Promise<string> {
 /**
  * Process an AI command with context
  */
-export async function processAiCommandWithContext(input: string, options: any) {
+export async function processAiCommandWithContext(input: string, options: ProcessAICommandOptions) {
   return runWithContext(async () => {
     await ensureConfigured();
     const pipedContent = await readFromStdin();
@@ -66,7 +72,7 @@ async function ensureConfigured() {
 /**
  * Sets up context variables for the AI session
  */
-function setupContextVariables(options: any) {
+function setupContextVariables(options: ProcessAICommandOptions) {
   setAutoApprove(options.autoApprove);
   setCostTracker(new CumulativeCostTracker());
   setShowCostInfo(options.cost);
@@ -75,7 +81,7 @@ function setupContextVariables(options: any) {
 /**
  * Processes the command based on options
  */
-async function processCommand(input: string, context: string, options: any) {
+async function processCommand(input: string, context: string, options: ProcessAICommandOptions) {
   if (options.agent) {
     await runAgentMode({
       input,
