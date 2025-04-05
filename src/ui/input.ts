@@ -1,12 +1,13 @@
 import { runAgentMode } from "../commands/agent";
 import { processAiCommand } from "../commands/ai";
-import { initCommand } from "../commands/init";
+import { setupCommand } from "../commands/setup";
 import { Config } from "../config";
 import { logger } from "../logger";
 import "../config/model-config"; // Ensure model config is loaded
 import { CumulativeCostTracker } from "../services/pricing";
 import {
   runWithContext,
+  setActiveProfile,
   setAutoApprove,
   setCostTracker,
   setShowCostInfo,
@@ -17,6 +18,7 @@ type ProcessAICommandOptions = {
   cost: boolean;
   agent: boolean;
   thread: string;
+  profile?: string;
 };
 /**
  * Reads content from stdin if data is being piped
@@ -68,7 +70,7 @@ export async function processAiCommandWithContext(
 async function ensureConfigured() {
   if (!Config.configExists()) {
     logger.info("Terminal AI is not configured. Running setup wizard...");
-    await initCommand();
+    await setupCommand();
   }
 }
 
@@ -79,6 +81,28 @@ function setupContextVariables(options: ProcessAICommandOptions) {
   setAutoApprove(options.autoApprove);
   setCostTracker(new CumulativeCostTracker());
   setShowCostInfo(options.cost);
+
+  // Set the active profile based on options or configuration
+  if (options.profile) {
+    // If a specific profile is requested, use that
+    const config = Config.readConfig();
+    if (config) {
+      const requestedProfile = config.profiles.find(
+        (p) => p.name === options.profile,
+      );
+      if (requestedProfile) {
+        setActiveProfile(requestedProfile);
+      } else {
+        logger.warn(
+          `Profile '${options.profile}' not found. Using default active profile.`,
+        );
+        setActiveProfile(Config.getActiveProfile());
+      }
+    }
+  } else {
+    // Use the default active profile
+    setActiveProfile(Config.getActiveProfile());
+  }
 }
 
 /**

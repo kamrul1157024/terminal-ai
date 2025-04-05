@@ -10,10 +10,9 @@
   "scripts": {
     "build": "tsc && npm run copy-files",
     "copy-files": "copyfiles -u 1 \"src/**/*.{json,yaml,yml}\" dist/",
-    "dev": "ts-node src/index.ts",
     "prepublish": "npm run build",
     "test": "echo \"No tests specified yet\"",
-    "install:global": "npm run build && npm install -g .",
+    "install:global": "npm run build && chmod +x ./dist/index.js && npm install -g .",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",
     "setup": "npm install && npm run build",

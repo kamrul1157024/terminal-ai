@@ -7,9 +7,9 @@ import {
   FunctionHandler,
   FunctionUIRender,
 } from "../llm/interface";
+import { logger } from "../logger";
 
 import { LLMFunction } from "./types";
-import { logger } from "../logger";
 function getFunctionDefinition<T extends ZodTypeAny>(
   functionDefinition: LLMFunction<T>,
 ): FunctionDefinition {
@@ -47,9 +47,7 @@ export class FunctionManager {
     const render = this.functionUIRenders.get(functionCall.name);
 
     if (!render) {
-      logger.warn(
-        `No render registered for function: ${functionCall.name}`,
-      );
+      logger.warn(`No render registered for function: ${functionCall.name}`);
     }
 
     render?.(functionCall.arguments);

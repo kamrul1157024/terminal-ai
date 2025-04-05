@@ -8,13 +8,22 @@ import { LLMProviderType } from "../llm";
 import { logger } from "../logger";
 
 /**
+ * Configuration interface for a single LLM profile
+ */
+export interface ProfileConfig {
+  name: string;
+  provider: LLMProviderType;
+  model: string;
+  apiKey?: string;
+  apiEndpoint?: string;
+}
+
+/**
  * Configuration interface for Terminal AI
  */
 export interface TerminalAIConfig {
-  provider: LLMProviderType;
-  apiKey?: string;
-  model?: string;
-  apiEndpoint?: string;
+  activeProfile: string;
+  profiles: ProfileConfig[];
 }
 
 // Default configuration path
@@ -37,6 +46,22 @@ export function readConfig(): TerminalAIConfig | null {
     console.error("Error reading config file:", error);
     return null;
   }
+}
+
+/**
+ * Get active profile configuration
+ * @returns The active profile config or null if not found
+ */
+export function getActiveProfile(): ProfileConfig | null {
+  const config = readConfig();
+  if (!config || config.profiles.length === 0) {
+    return null;
+  }
+
+  return (
+    config.profiles.find((p) => p.name === config.activeProfile) ||
+    config.profiles[0]
+  );
 }
 
 /**

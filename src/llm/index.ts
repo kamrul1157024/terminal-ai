@@ -1,4 +1,5 @@
 import { readConfig } from "../config/config";
+import { getActiveProfile } from "../utils/context-vars";
 
 import { LLMProvider, LLMProviderConfig } from "./interface";
 import { OllamaProvider } from "./providers/ollama-provider";
@@ -15,17 +16,38 @@ export function createLLMProvider(
   type?: LLMProviderType,
   config: LLMProviderConfig = {},
 ): LLMProvider {
-  if (!type || Object.keys(config).length === 0) {
+  // First, check if there's an active profile in the context
+  const activeProfile = getActiveProfile();
+
+  if (activeProfile) {
+    type = type || activeProfile.provider;
+
+    config = {
+      apiKey: activeProfile.apiKey,
+      model: activeProfile.model,
+      apiEndpoint: activeProfile.apiEndpoint,
+      ...config,
+    };
+  }
+  // If no active profile, fall back to the global config
+  else if (!type || Object.keys(config).length === 0) {
     const savedConfig = readConfig();
 
     if (savedConfig) {
-      type = type || savedConfig.provider;
+      const activeProfile = savedConfig.profiles.find(
+        (p) => p.name === savedConfig.activeProfile,
+      );
 
-      config = {
-        apiKey: savedConfig.apiKey,
-        model: savedConfig.model,
-        ...config,
-      };
+      if (activeProfile) {
+        type = type || activeProfile.provider;
+
+        config = {
+          apiKey: activeProfile.apiKey,
+          model: activeProfile.model,
+          apiEndpoint: activeProfile.apiEndpoint,
+          ...config,
+        };
+      }
     }
   }
 

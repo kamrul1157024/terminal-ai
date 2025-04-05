@@ -7,7 +7,11 @@ import { logger } from "../logger";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
-import { displayConversationHistory, showAssistantMessage, showUserMessage } from "../ui/output";
+import {
+  displayConversationHistory,
+  showAssistantMessage,
+  showUserMessage,
+} from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
 import { getSystemInfoFromOS } from "../utils/system-info";
 

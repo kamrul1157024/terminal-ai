@@ -1,10 +1,13 @@
 import { AsyncLocalStorage } from "async_hooks";
 
+import { ProfileConfig } from "../config/config";
 import { CumulativeCostTracker } from "../services/pricing";
+
 type Store = {
   costTracker: CumulativeCostTracker;
   showCostInfo: boolean;
   autoApprove: boolean;
+  activeProfile?: ProfileConfig;
 };
 
 const contextVars = new AsyncLocalStorage<Store>();
@@ -55,6 +58,17 @@ function getShowCostInfo(): boolean | undefined {
   return contextVars.getStore()?.showCostInfo;
 }
 
+function setActiveProfile(profile: ProfileConfig | null) {
+  const store = contextVars.getStore();
+  if (store && profile) {
+    store.activeProfile = profile;
+  }
+}
+
+function getActiveProfile(): ProfileConfig | undefined {
+  return contextVars.getStore()?.activeProfile;
+}
+
 export {
   setAutoApprove,
   getAutoApprove,
@@ -63,4 +77,6 @@ export {
   getCostTracker,
   setShowCostInfo,
   getShowCostInfo,
+  setActiveProfile,
+  getActiveProfile,
 };
