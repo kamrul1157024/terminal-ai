@@ -3,7 +3,7 @@ import path from "path";
 import os from "os";
 import YAML from "yaml";
 import { LLMProviderType } from "../llm";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 /**
  * Configuration interface for Terminal AI

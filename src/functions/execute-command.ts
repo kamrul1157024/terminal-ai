@@ -2,7 +2,7 @@ import { FunctionDefinition } from "../llm/interface";
 import { exec, ExecOptions } from "child_process";
 import { promisify } from "util";
 import inquirer from "inquirer";
-import { logger } from "../utils/logger";
+import { logger } from "../logger";
 import { isSystemQueryingCommand } from "../utils";
 import { getAutoApprove } from "../utils/context-vars";
 import * as os from "os";
@@ -90,22 +90,24 @@ async function executeCommand(
     // Process the command to handle multi-line content appropriately
     let executableCommand = formattedCommand;
 
-    // Check if command contains newlines or quotes that need special handling
+    // Check if command contains newlines, quotes, or backticks that need special handling
     if (
       formattedCommand.includes("\n") ||
       formattedCommand.includes("'") ||
-      formattedCommand.includes('"')
+      formattedCommand.includes('"') ||
+      formattedCommand.includes('`')
     ) {
       if (isWindows) {
         // For Windows PowerShell
-        executableCommand = formattedCommand.replace(/"/g, '`"');
+        executableCommand = formattedCommand.replace(/"/g, '`"').replace(/`/g, '``');
       } else {
         // For Unix shells (bash/zsh)
-        // Instead of wrapping the entire command, we'll identify and process quoted parts
+        // Escape backticks first before other processing
+        executableCommand = formattedCommand.replace(/`/g, '\\`');
 
         // Simple technique - if we find a quoted string with newlines inside, fix just that part
         const quotedStringRegex = /(['"])((?:\\\1|(?!\1).)*?)(\1)/g;
-        executableCommand = formattedCommand.replace(
+        executableCommand = executableCommand.replace(
           quotedStringRegex,
           (match, quote, content) => {
             if (content.includes("\n") || content.includes("'")) {

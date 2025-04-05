@@ -88,9 +88,7 @@ export class LLM {
 
       const results = await Promise.all(
         completion.functionCalls.map(
-          this.functionManager.handleFunctionCall.bind(
-            this.functionManager,
-          ),
+          this.functionManager.handleFunctionCall.bind(this.functionManager),
         ),
       );
 

@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import { initCommand } from "./commands/init";
-import * as inputProcessor from "./input-processor";
+import * as Input from "./ui/input";
 import { ThreadManager } from "./services";
 // Package version from package.json
 const packageJson = require("../package.json");
@@ -95,7 +95,7 @@ function setupMainCommand(program: Command) {
       "Continue conversation in specified thread",
     )
     .action(async (input: string, options) => {
-      await inputProcessor.processAiCommandWithContext(input, options);
+      await Input.processAiCommandWithContext(input, options);
     });
 }
 

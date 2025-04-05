@@ -8,7 +8,7 @@ import {
   FunctionCallResponse,
   FunctionCallResult,
 } from "../llm/interface";
-import { logger } from "../utils/logger";
+import { logger } from "../logger";
 
 // Define interfaces for database row types
 interface ThreadRow {

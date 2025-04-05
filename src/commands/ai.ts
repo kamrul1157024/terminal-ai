@@ -1,12 +1,7 @@
 import { createLLMProvider } from "../llm";
-import {
-  executeCommandFunction,
-  executeCommandHandler,
-  getSystemInfoFunction,
-  getSystemInfoHandler,
-} from "../functions";
+import { ExecuteCommand, SystemInfo } from "../functions";
 import { Message, MessageRole } from "../llm/interface";
-import { logger } from "../utils/logger";
+import { logger } from "../logger";
 import { FunctionManager } from "../functions/manager";
 import { displayCostInfo } from "../utils/pricing-calculator";
 import { getShowCostInfo } from "../utils/context-vars";
@@ -33,13 +28,13 @@ export async function processAiCommand(
     const llmProvider = createLLMProvider();
     const functionManager = new FunctionManager();
     functionManager.registerFunction(
-      getSystemInfoFunction,
-      getSystemInfoHandler,
+      SystemInfo.getSystemInfoFunction,
+      SystemInfo.getSystemInfoHandler,
     );
 
     functionManager.registerFunction(
-      executeCommandFunction,
-      executeCommandHandler,
+      ExecuteCommand.executeCommandFunction,
+      ExecuteCommand.executeCommandHandler,
     );
 
     const llm = new LLM({

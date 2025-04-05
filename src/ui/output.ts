@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { logger } from "./utils/logger";
+import { logger } from "../logger";
 
 /**
  * Displays a list of threads

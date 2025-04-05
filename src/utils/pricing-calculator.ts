@@ -1,7 +1,7 @@
 import { TokenUsage } from "../llm/interface";
 import { calculateCost } from "./model-config";
 import chalk from "chalk";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 function formatCost(cost: number): string {
   return "$" + cost.toFixed(6).replace(/\.?0+$/, "");

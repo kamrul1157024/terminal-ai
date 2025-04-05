@@ -1,4 +1,5 @@
-import { logger } from "../utils/logger";
+import { logger } from "../logger";
+import * as Output from "../ui/output";
 import { runAgentMode } from "../commands/agent";
 import {
   runWithContext,
@@ -7,7 +8,6 @@ import {
   setShowCostInfo,
 } from "../utils/context-vars";
 import { CumulativeCostTracker } from "../utils/pricing-calculator";
-import * as ui from "../ui";
 import { SQLiteThreadRepository } from "../repositories";
 
 /**
@@ -67,7 +67,8 @@ async function handleThreadSelection(
   displayedThreads: any[],
 ) {
   try {
-    const selectedThreadId = await ui.promptThreadSelection(displayedThreads);
+    const selectedThreadId =
+      await Output.promptThreadSelection(displayedThreads);
     await attachToThread(selectedThreadId);
   } catch (error) {
     // Check if this is an exit prompt error (from Ctrl+C)
@@ -121,7 +122,7 @@ export async function attachToThread(threadId: string) {
 
   logger.info(`Attaching to thread: ${thread.name} (ID: ${thread.id})`);
 
-  ui.displayConversationHistory(thread);
+  Output.displayConversationHistory(thread);
   await startAgentModeWithThread(thread.id);
 }
 

@@ -3,23 +3,17 @@ import chalk from "chalk";
 import os from "os";
 import { createLLMProvider } from "../llm";
 import { TokenUsage } from "../llm/interface";
-import {
-  getSystemInfoFunction,
-  getSystemInfoHandler,
-  executeCommandFunction,
-  executeCommandHandler,
-} from "../functions";
+import { SystemInfo, ExecuteCommand } from "../functions";
 import { FunctionManager } from "../functions/manager";
 import {
   CumulativeCostTracker,
   displayCostInfo,
 } from "../utils/pricing-calculator";
-import { logger } from "../utils/logger";
 import { getShowCostInfo } from "../utils/context-vars";
-import {  Thread } from "../repositories";
+import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
-
+import { logger } from "../logger";
 const costTracker = new CumulativeCostTracker();
 
 function getSystemInfoFromOS(): string {
@@ -136,12 +130,12 @@ export async function runAgentMode({
   try {
     const functionManager = new FunctionManager();
     functionManager.registerFunction(
-      executeCommandFunction,
-      executeCommandHandler,
+      ExecuteCommand.executeCommandFunction,
+      ExecuteCommand.executeCommandHandler,
     );
     functionManager.registerFunction(
-      getSystemInfoFunction,
-      getSystemInfoHandler,
+      SystemInfo.getSystemInfoFunction,
+      SystemInfo.getSystemInfoHandler,
     );
 
     // Get system information using the OS module

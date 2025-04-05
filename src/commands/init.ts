@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import { writeConfig, configExists } from "../utils/config";
 import { LLMProviderType } from "../llm";
 import { getProviderModels, getDefaultModel } from "../utils/model-config";
-import { logger } from "../utils/logger";
+import { logger } from "../logger";
 
 /**
  * Initialize the Terminal AI CLI by setting up the config
