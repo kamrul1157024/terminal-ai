@@ -14,9 +14,6 @@
     "test": "echo \"No tests specified yet\"",
     "install:global": "npm run build && chmod +x ./dist/index.js && npm install -g .",
     "clean": "rm -rf dist",
-    "rebuild": "npm run clean && npm run build",
-    "setup": "npm install && npm run build",
-    "watch": "chokidar \"src/**/*.{ts,json,yaml,yml}\" -c \"npm run install:global\"",
     "format": "prettier --write \"src/**/*.{ts,json,yaml,yml}\"",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix"

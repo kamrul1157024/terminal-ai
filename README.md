@@ -1,55 +1,16 @@
-# AI CLI
-
-[![npm version](https://img.shields.io/npm/v/ai.svg)](https://www.npmjs.com/package/ai)
-[![CI](https://github.com/yourusername/ai/actions/workflows/pull-request.yml/badge.svg)](https://github.com/yourusername/ai/actions/workflows/pull-request.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# Terminal AI
 
 A CLI application that uses AI to process natural language commands and execute them in the terminal.
 
 ## Features
 
-- Convert natural language to terminal commands with real-time streaming responses
+- Convert natural language to terminal commands
 - Special handling for potentially dangerous commands
 - Automatic sudo escalation when required
 - Configurable AI provider support
 - Interactive agent mode with conversational interface
-- Support for multiple AI providers:
-  - OpenAI
-  - Claude (Anthropic)
-  - Gemini (Google)
-  - Ollama (local models)
 
 ## Installation
-
-### Requirements
-
-- Node.js v20.0.0 or higher
-
-### Using npx (recommended)
-
-You can run AI CLI without installing it using npx:
-
-```bash
-npx ai init
-npx ai "your command in natural language"
-```
-
-### Global Installation
-
-If you prefer to install the package globally:
-
-```bash
-npm install -g ai
-```
-
-Then you can use the `ai` command directly:
-
-```bash
-ai init
-ai "your command in natural language"
-```
-
-### From Source
 
 1. Clone this repository
 2. Install dependencies:
@@ -71,33 +32,19 @@ Run the initialization command to configure your AI provider:
 
 ```
 ai init
-# or
-npx ai init
 ```
 
 This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai.yaml`.
 
-## Using the Command
+## Usage
 
 ### Basic Mode
 
-In basic mode, the AI converts your natural language request into a single terminal command and executes it. The response is streamed in real-time for instant feedback:
+In basic mode, the AI converts your natural language request into a single terminal command and executes it:
 
 ```
 ai "your command in natural language"
-# or
-npx ai "your command in natural language"
 ```
-
-You can also pipe output from other commands to provide context:
-
-```
-ls -la | ai "find all JavaScript files in this list"
-cat error.log | ai "explain this error and suggest a fix"
-git status | ai "which files were modified today"
-```
-
-The AI will use the piped input as context when generating the appropriate command.
 
 #### Examples
 
@@ -110,12 +57,10 @@ When using a potentially destructive command, the application will ask for confi
 
 ### Agent Mode
 
-In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission. All responses are streamed in real-time:
+In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission:
 
 ```
 ai --agent "your task description"
-# or
-npx ai --agent "your task description"
 ```
 
 Or use the shorthand:
@@ -125,7 +70,7 @@ ai -a "your task description"
 ```
 
 The agent will:
-- Analyze your request and suggest appropriate commands in real-time
+- Analyze your request and suggest appropriate commands
 - Provide reasoning for each suggested command
 - Ask for confirmation before executing potentially dangerous commands
 - Return command output to the AI for further analysis
@@ -140,9 +85,9 @@ ai -a "help me find large files on my system"
 ai -a "set up a basic Node.js project"
 ```
 
-### Advanced Usage
+## Advanced Usage
 
-#### Using with Pipes
+### Using with Pipes
 
 The AI CLI can process input from other commands via pipes:
 
@@ -157,7 +102,7 @@ ps aux | ai "find all Node.js processes"
 tail -n 100 server.log | ai "what errors occurred in the last 100 lines"
 ```
 
-#### Environment Variables
+### Environment Variables
 
 You can override configuration settings using environment variables:
 
@@ -175,100 +120,105 @@ export AI_PROVIDER=claude
 ai "help me with this task"
 ```
 
-#### Configuration File
+### Configuration File
 
 The configuration is stored in `~/.terminal-ai.yaml`. You can manually edit this file to change settings:
 
 ```yaml
-provider: openai
-apiKey: sk-...
-model: gpt-4
-apiEndpoint: https://api.openai.com/v1
+profiles:
+  - name: default
+    provider: openai
+    apiKey: sk-...
+    model: gpt-4
+activeProfile: default
 ```
+
+## Thread Management
+
+Threads allow you to maintain conversational context across multiple interactions with the AI. This is especially useful for complex tasks that require multiple steps or when you want to continue a conversation later.
+
+### Thread Basics
+
+Each thread maintains its conversation history, allowing the AI to reference previous commands and responses. This provides continuity and context awareness for ongoing tasks.
+
+### Managing Threads
+
+#### Listing Threads
+
+To view all available threads:
+
+```bash
+ai thread list
+```
+
+You can filter threads by name:
+
+```bash
+ai thread list --filter "project"
+```
+
+After listing threads, you can select one interactively to continue the conversation.
+
+#### Attaching to a Thread
+
+To continue a conversation in an existing thread:
+
+```bash
+ai thread attach <thread-id>
+```
+
+This will resume the conversation where you left off, with all previous context intact.
+
+#### Using a Thread for a Single Command
+
+To use a specific thread for a one-time command without entering agent mode:
+
+```bash
+ai --thread <thread-id> "your command"
+```
+
+#### Renaming Threads
+
+To give a thread a more descriptive name:
+
+```bash
+ai thread rename <thread-id> "New descriptive name"
+```
+
+#### Deleting Threads
+
+When you're done with a thread, you can delete it:
+
+```bash
+ai thread delete <thread-id>
+```
+
+### Thread Workflow Example
+
+1. Start a new task in agent mode:
+   ```bash
+   ai -a "set up a React project"
+   ```
+   
+   This creates a new thread automatically.
+
+2. Later, list your threads to find the React project:
+   ```bash
+   ai thread list
+   ```
+
+3. Attach to the thread to continue the setup:
+   ```bash
+   ai thread attach <thread-id>
+   ```
+
+4. After completing the task, rename the thread for future reference:
+   ```bash
+   ai thread rename <thread-id> "React project setup"
+   ```
 
 ## Cost Tracking
 
-AI CLI includes built-in cost tracking for all API-based providers:
-
-- Shows token usage after each request
-- Displays the estimated cost based on provider pricing
-- Tracks cumulative usage during agent sessions
-- Supports accurate token counting using tiktoken
-
-## Development
-
-- `yarn dev`: Run the application in development mode
-- `yarn build`: Build the application
-- `yarn start`: Run the built application
-
-## Contributing to the Project
-
-We welcome contributions to AI CLI! Here's how you can help:
-
-### Setting Up for Development
-
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/yourusername/ai.git`
-3. Install dependencies: `yarn install`
-4. Create a branch for your changes: `git checkout -b feature/your-feature-name`
-
-### Making Changes
-
-- Follow the existing code style and patterns
-- Add tests for new functionality
-- Update documentation as needed
-- Make sure all tests pass: `yarn test`
-- Build the project: `yarn build`
-
-### Submitting a Pull Request
-
-1. Push your changes to your fork: `git push origin feature/your-feature-name`
-2. Create a pull request from your fork to the main repository
-3. Provide a clear description of the changes and why they're needed
-4. Reference any related issues
-
-### Adding a New AI Provider
-
-To add support for a new AI provider:
-
-1. Create a new file in `src/llm/providers/` (e.g., `new-provider.ts`)
-2. Implement the `LLMProvider` interface
-3. Add the provider type to the `LLMProviderType` enum in `src/llm/index.ts`
-4. Update the `createLLMProvider` function to handle the new provider
-5. Add token counting support in `src/utils/token-counter.ts`
-6. Update documentation and tests
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow the existing code style
-- Use meaningful variable and function names
-- Add JSDoc comments for public functions and interfaces
-- Keep functions focused and small
-
-## Continuous Integration
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-- **CI Workflow**: Runs on pull requests and pushes to the main branch to verify the build and tests pass.
-- **Publish Workflow**: Automatically publishes to npm when a new GitHub release is created.
-
-### Publishing a New Release
-
-1. Create a new release on GitHub with a tag following semver (e.g., `v1.2.0`)
-2. The GitHub Action will automatically:
-   - Extract the version from the release tag
-   - Update the version in `package.json`
-   - Build the package
-   - Publish to npm
-
-### Setting Up NPM_TOKEN
-
-To enable automatic publishing, you need to add your NPM token to your GitHub repository:
-
-1. Generate an NPM access token with publish permissions
-2. Add it as a secret named `NPM_TOKEN` in your GitHub repository settings
-
 ## License
 
-MIT
+MIT 
