@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 
 import Database from "better-sqlite3";
@@ -70,10 +71,11 @@ class MessageSerializer {
 export class SQLiteThreadRepository implements ThreadRepository {
   private db: Database.Database;
 
-  constructor(baseDir: string = ".terminal-ai-sessions") {
+  constructor() {
     // Create base directory in user's home directory
     const homeDir = process.env.HOME || process.env.USERPROFILE || "";
-    const dbPath = path.join(homeDir, baseDir, "terminal-ai.db");
+    const dbPath = path.join(homeDir, ".terminal-ai.db");
+  
 
     try {
       this.db = new Database(dbPath);
