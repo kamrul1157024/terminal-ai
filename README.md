@@ -21,7 +21,7 @@ Run the initialization command to configure your AI provider:
 ai setup
 ```
 
-This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai.yaml`.
+This will guide you through setting up your preferred AI provider and API key. The configuration will be stored in `~/.terminal-ai/config.yaml`.
 
 ## Usage
 
