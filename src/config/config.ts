@@ -26,8 +26,12 @@ export interface TerminalAIConfig {
   profiles: ProfileConfig[];
 }
 
-// Default configuration path
-const CONFIG_PATH = path.join(os.homedir(), ".terminal-ai.yaml");
+
+if(!fs.existsSync(path.join(os.homedir(), ".terminal-ai"))) {
+  fs.mkdirSync(path.join(os.homedir(), ".terminal-ai"), { recursive: true });
+}
+
+const CONFIG_PATH = path.join(os.homedir(), ".terminal-ai", "config.yaml");
 
 /**
  * Read configuration from ~/.terminal-ai.yaml
