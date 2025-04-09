@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { getUserAliases, getAvailableCommands } from "./utils/aliases";
 import { getGitInfo } from "./utils/git-info";
 import { getSystemInfoFromOS } from "./utils/system-info";
 
@@ -13,12 +14,22 @@ const getSystemPrompt = async (context: string) => {
   ${getSystemInfoFromOS()}
   `;
 
-
   const gitInfo = await getGitInfo();
+  const aliases = await getUserAliases();
+  const availableCommands = await getAvailableCommands();
+  
   let fullContext = context || '';
 
   if (gitInfo) {
     fullContext = fullContext ? `${fullContext}\n\n${gitInfo}` : gitInfo;
+  }
+
+  if (aliases) {
+    fullContext = fullContext ? `${fullContext}\n\nUSER ALIASES:\n${aliases}` : `USER ALIASES:\n${aliases}`;
+  }
+
+  if (availableCommands) {
+    fullContext = fullContext ? `${fullContext}\n\nAVAILABLE COMMANDS:\n${availableCommands}` : `AVAILABLE COMMANDS:\n${availableCommands}`;
   }
 
   if (fullContext) {
