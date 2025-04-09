@@ -13,28 +13,7 @@ import {
   showUserMessage,
 } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
-import { getSystemInfoFromOS } from "../utils/system-info";
-
-const AGENT_SYSTEM_PROMPT_TEMPLATE = `You are a helpful terminal AI assistant. Help the user accomplish their tasks by executing terminal commands.
-
-SYSTEM INFORMATION:
-${getSystemInfoFromOS()}
-
-CAPABILITIES:
-- Execute terminal commands to help users complete their tasks
-- Provide information about files, directories, and system status
-- Handle errors gracefully and suggest solutions
-- Explain commands and their options when needed
-
-GUIDELINES:
-- Be concise, precise, and helpful in your responses
-- For complex operations, explain what you're doing before executing commands
-- Prioritize safe operations; warn about potentially dangerous commands
-- If a command execution fails, troubleshoot the issue and suggest alternatives
-- When appropriate, suggest better ways to accomplish the user's goal
-- Make sure multiline commands are handled correctly and do not use backticks
-
-When the user asks a question or needs assistance, figure out the best way to help them, including using commands when necessary.`;
+import getSystemPrompt from "../prompt";
 
 const EXIT_COMMANDS = ["exit", "quit", "q"];
 const HELP_COMMAND = "help";
@@ -104,7 +83,7 @@ export async function runAgentMode({
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,
-      systemPrompt: AGENT_SYSTEM_PROMPT_TEMPLATE,
+      systemPrompt: await getSystemPrompt(context || ''),
       functionManager,
     });
 
