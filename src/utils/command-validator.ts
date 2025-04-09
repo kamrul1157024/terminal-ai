@@ -30,23 +30,6 @@ export function isSystemQueryingCommand(command: string): boolean {
     /\bprintenv\b/,
     /\bpwd\b/,
 
-    // Git commands
-    /\bgit\s+status\b/,
-    /\bgit\s+log\b/,
-    /\bgit\s+diff\b/,
-    /\bgit\s+show\b/,
-    /\bgit\s+branch\b/,
-    /\bgit\s+tag\b/,
-    /\bgit\s+ls-files\b/,
-    /\bgit\s+config\s+--list\b/,
-    /\bgit\s+remote\b/,
-
-    // Kubernetes commands
-    /\bkubectl\s+get\b/,
-    /\bkubectl\s+describe\b/,
-    /\bkubectl\s+logs\b/,
-    /\bkubectl\s+top\b/,
-
     // Docker commands
     /\bdocker\s+ps\b/,
     /\bdocker\s+images\b/,
