@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import { LLM } from "../services/llm";
 import { showAssistantMessage } from "../ui/output";
 import { getCostTracker, getShowCostInfo } from "../utils/context-vars";
+import { getGitInfo } from "../utils/git-info";
 import { getSystemInfoFromOS } from "../utils/system-info";
 
 const BASIC_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands as tool call of executeCommandFunction.
@@ -15,7 +16,7 @@ ${getSystemInfoFromOS()}
 
 const CONTEXT_SYSTEM_PROMPT = `You are a helpful terminal assistant. Convert natural language requests into terminal commands. 
   Use the provided context to inform your command generation. 
-  Respond with ONLY the terminal command, nothing else. And try to respond with single line commands.
+  use the \`execute_command\` function to execute terminal commands.
   if user asks question that is not related to terminal commands respond user question.
   `;
 
@@ -25,8 +26,17 @@ export async function processAiCommand(
 ): Promise<void> {
   try {
     logger.debug(`Processing: "${input}"`);
-    if (context) {
-      logger.debug(`With context: ${context}`);
+    
+    // Get git information
+    const gitInfo = await getGitInfo();
+    let fullContext = context || '';
+    
+    if (gitInfo) {
+      fullContext = fullContext ? `${fullContext}\n\n${gitInfo}` : gitInfo;
+    }
+
+    if (fullContext) {
+      logger.debug(`With context: ${fullContext}`);
     }
 
     const llmProvider = createLLMProvider();
@@ -36,13 +46,13 @@ export async function processAiCommand(
 
     const llm = new LLM({
       llmProvider,
-      systemPrompt: context ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT,
+      systemPrompt: fullContext ? CONTEXT_SYSTEM_PROMPT : BASIC_SYSTEM_PROMPT,
       functionManager,
     });
 
     let userInput = input;
-    if (context) {
-      userInput = `${context}\n${userInput}`;
+    if (fullContext) {
+      userInput = `${fullContext}\n${userInput}`;
     }
 
     const history: Message<MessageRole>[] = [];
