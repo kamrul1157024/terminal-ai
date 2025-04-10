@@ -1,5 +1,4 @@
-import { runAgentMode } from "../commands/agent";
-import { processAiCommand } from "../commands/ai";
+import { runAgent } from "../commands/agent";
 import { setupCommand } from "../commands/setup";
 import { Config } from "../config";
 import { logger } from "../logger";
@@ -22,6 +21,7 @@ type ProcessAICommandOptions = {
   thread: string;
   profile?: string;
   debug?: boolean;
+  interactive: boolean;
 };
 /**
  * Reads content from stdin if data is being piped
@@ -63,7 +63,12 @@ export async function processAiCommandWithContext(
     const pipedContent = await readFromStdin();
     setupContextVariables(options);
 
-    await processCommand(input, pipedContent, options);
+    await runAgent({
+      input,
+      context: pipedContent,
+      threadId: options.thread,
+      interactive: options.interactive,
+    });
   });
 }
 
@@ -104,24 +109,5 @@ function setupContextVariables(options: ProcessAICommandOptions) {
   } else {
     // Use the default active profile
     setActiveProfile(Config.getActiveProfile());
-  }
-}
-
-/**
- * Processes the command based on options
- */
-async function processCommand(
-  input: string,
-  context: string,
-  options: ProcessAICommandOptions,
-) {
-  if (options.agent) {
-    await runAgentMode({
-      input,
-      context,
-      threadId: options.thread,
-    });
-  } else {
-    await processAiCommand(input, context);
   }
 }

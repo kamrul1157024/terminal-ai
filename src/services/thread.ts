@@ -1,4 +1,4 @@
-import { runAgentMode } from "../commands/agent";
+import { runAgent } from "../commands/agent";
 import { logger } from "../logger";
 import { SQLiteThreadRepository } from "../repositories";
 import { Thread } from "../repositories";
@@ -129,7 +129,7 @@ async function startAgentModeWithThread(threadId: string) {
     setCostTracker(new CumulativeCostTracker());
     setShowCostInfo(false);
 
-    await runAgentMode({
+    await runAgent({
       input: "",
       threadId,
     });

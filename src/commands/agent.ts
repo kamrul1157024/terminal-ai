@@ -69,12 +69,14 @@ export interface AgentModeOptions {
   input: string;
   context?: string;
   threadId?: string;
+  interactive?: boolean;
 }
 
-export async function runAgentMode({
+export async function runAgent({
   input,
   context,
   threadId,
+  interactive,
 }: AgentModeOptions): Promise<void> {
   try {
     const functionManager = new FunctionManager();
@@ -192,7 +194,7 @@ export async function runAgentMode({
         }
 
         getCostTracker()?.addUsage(usage);
-      } else {
+      } else if (interactive) {
         logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 
         const { shouldContinue, input } = await processUserInput();

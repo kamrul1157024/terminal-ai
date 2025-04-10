@@ -25,9 +25,9 @@ This will guide you through setting up your preferred AI provider and API key. T
 
 ## Usage
 
-### Basic Mode
+### Non-interactive mode
 
-In basic mode, the AI converts your natural language request into a single terminal command and executes it:
+In non-interactive mode, the AI converts your natural language request into a single terminal command and executes it:
 
 ```
 ai "your command in natural language"
@@ -42,18 +42,18 @@ ai "delete all files in current folder"
 
 When using a potentially destructive command, the application will ask for confirmation before executing.
 
-### Agent Mode
+### Interactive mode
 
-In agent mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission:
+In interactive mode, the AI maintains a continuous conversation, suggesting and executing commands with your permission:
 
 ```
-ai --agent "your task description"
+ai --interactive "your task description"
 ```
 
 Or use the shorthand:
 
 ```
-ai -a "your task description"
+ai -i "your task description"
 ```
 
 The agent will:
@@ -68,8 +68,8 @@ To exit agent mode, type `exit` or `quit`.
 #### Examples
 
 ```
-ai -a "help me find large files on my system"
-ai -a "set up a basic Node.js project"
+ai -i "help me find large files on my system"
+ai -i "set up a basic Node.js project"
 ```
 
 ## Advanced Usage

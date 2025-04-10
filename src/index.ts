@@ -261,9 +261,9 @@ function setupThreadCommands(program: Command) {
 function setupMainCommand(program: Command) {
   program
     .argument("<input>", "The command to interpret")
-    .option("-a, --agent", "Run in agent mode with continuous conversation")
     .option("--auto-approve", "Run in auto-approve mode")
     .option("--cost", "Show cost information")
+    .option("-i, --interactive", "Run in interactive mode")
     .option("-p, --profile <profile>", "Use specific profile for this request")
     .option(
       "-t, --thread <threadId>",
