@@ -79,11 +79,19 @@ export async function runAgentMode({
   try {
     const functionManager = new FunctionManager();
     functionManager.registerFunction(FunctionDefinitions.commandExecutor);
+    functionManager.registerFunction(FunctionDefinitions.gitStatus);
+    functionManager.registerFunction(FunctionDefinitions.gitAdd);
+    functionManager.registerFunction(FunctionDefinitions.gitCommit);
+    functionManager.registerFunction(FunctionDefinitions.gitPush);
+    functionManager.registerFunction(FunctionDefinitions.gitPull);
+    functionManager.registerFunction(FunctionDefinitions.gitBranch);
+    functionManager.registerFunction(FunctionDefinitions.gitRemote);
+    functionManager.registerFunction(FunctionDefinitions.gitRebase);
 
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,
-      systemPrompt: await getSystemPrompt(context || ''),
+      systemPrompt: await getSystemPrompt(context || '' + functionManager.getFunctionPrompt()),
       functionManager,
     });
 

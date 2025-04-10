@@ -27,6 +27,7 @@ export class FunctionManager {
   private functions: FunctionDefinition[] = [];
   private functionHandlers: Map<string, FunctionHandler> = new Map();
   private functionUIRenders: Map<string, FunctionUIRender> = new Map();
+  private functionPrompts: Map<string, string> = new Map();
 
   constructor() {
     this.functionHandlers = new Map();
@@ -37,6 +38,13 @@ export class FunctionManager {
     this.functions.push(getFunctionDefinition(definition));
     this.functionHandlers.set(definition.name, definition.handler);
     this.functionUIRenders.set(definition.name, definition.render);
+    this.functionPrompts.set(definition.name, definition.prompt);
+  }
+
+  getFunctionPrompt(): string {
+    return Object.entries(this.functionPrompts)
+      .map(([name, prompt]) => `Here is how to use the ${name} function: ${prompt}`)
+      .join("\n");
   }
 
   getFunctions(): FunctionDefinition[] {
