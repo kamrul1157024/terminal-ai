@@ -4,6 +4,7 @@ import inquirer from "inquirer";
 import { FunctionDefinitions, FunctionManager } from "../functions";
 import { createLLMProvider } from "../llm";
 import { logger } from "../logger";
+import getSystemPrompt from "../prompt";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
@@ -13,7 +14,6 @@ import {
   showUserMessage,
 } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
-import getSystemPrompt from "../prompt";
 
 const EXIT_COMMANDS = ["exit", "quit", "q"];
 const HELP_COMMAND = "help";
@@ -79,14 +79,7 @@ export async function runAgentMode({
   try {
     const functionManager = new FunctionManager();
     functionManager.registerFunction(FunctionDefinitions.commandExecutor);
-    functionManager.registerFunction(FunctionDefinitions.gitStatus);
-    functionManager.registerFunction(FunctionDefinitions.gitAdd);
-    functionManager.registerFunction(FunctionDefinitions.gitCommit);
-    functionManager.registerFunction(FunctionDefinitions.gitPush);
-    functionManager.registerFunction(FunctionDefinitions.gitPull);
-    functionManager.registerFunction(FunctionDefinitions.gitBranch);
-    functionManager.registerFunction(FunctionDefinitions.gitRemote);
-    functionManager.registerFunction(FunctionDefinitions.gitRebase);
+    functionManager.registerFunction(FunctionDefinitions.workflowDiscoverer);
 
     const llmProvider = createLLMProvider();
     const llm = new LLM({
