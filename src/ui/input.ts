@@ -68,6 +68,7 @@ export async function processAiCommandWithContext(
       context: pipedContent,
       threadId: options.thread,
       interactive: options.interactive,
+      showCost: options.cost,
     });
   });
 }

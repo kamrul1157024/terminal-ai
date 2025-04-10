@@ -70,6 +70,7 @@ export interface AgentModeOptions {
   context?: string;
   threadId?: string;
   interactive?: boolean;
+  showCost?: boolean;
 }
 
 export async function runAgent({
@@ -77,6 +78,7 @@ export async function runAgent({
   context,
   threadId,
   interactive,
+  showCost,
 }: AgentModeOptions): Promise<void> {
   try {
     const functionManager = new FunctionManager();
@@ -215,7 +217,9 @@ export async function runAgent({
     // Show a nice exit message with cost info
     logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
     logger.info(chalk.blue.bold("Session ended."));
-    getCostTracker()?.displayTotalCost();
+    if (showCost) {
+      getCostTracker()?.displayTotalCost();
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.info(chalk.red(`\n❌ Error: ${error.message}`));
