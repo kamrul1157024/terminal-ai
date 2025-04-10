@@ -5,64 +5,71 @@ import { LLMProvider, LLMProviderConfig } from "./interface";
 import { GeminiProvider } from "./providers/gemini-provider";
 import { OllamaProvider } from "./providers/ollama-provider";
 import { OpenAIProvider } from "./providers/openai-provider";
+import { VertexAIProvider } from "./providers/vertexai-provider";
 
 export enum LLMProviderType {
   OPENAI = "openai",
   CLAUDE = "claude",
   GEMINI = "gemini",
   OLLAMA = "ollama",
+  VERTEXAI = "vertexai",
 }
 
 export function createLLMProvider(
   type?: LLMProviderType,
   config: LLMProviderConfig = {},
 ): LLMProvider {
-  // First, check if there's an active profile in the context
   const activeProfile = getActiveProfile();
+  let effectiveConfig: LLMProviderConfig & { projectId?: string; location?: string } = { ...config };
+  let providerType = type;
 
   if (activeProfile) {
-    type = type || activeProfile.provider;
-
-    config = {
+    providerType = providerType || activeProfile.provider;
+    effectiveConfig = {
       apiKey: activeProfile.apiKey,
       model: activeProfile.model,
       apiEndpoint: activeProfile.apiEndpoint,
+      projectId: activeProfile.projectId,
+      location: activeProfile.location,
       ...config,
     };
   }
-  // If no active profile, fall back to the global config
-  else if (!type || Object.keys(config).length === 0) {
+  else if (!providerType || Object.keys(config).length === 0) {
     const savedConfig = readConfig();
-
     if (savedConfig) {
-      const activeProfile = savedConfig.profiles.find(
+      const savedActiveProfile = savedConfig.profiles.find(
         (p) => p.name === savedConfig.activeProfile,
       );
-
-      if (activeProfile) {
-        type = type || activeProfile.provider;
-
-        config = {
-          apiKey: activeProfile.apiKey,
-          model: activeProfile.model,
-          apiEndpoint: activeProfile.apiEndpoint,
+      if (savedActiveProfile) {
+        providerType = providerType || savedActiveProfile.provider;
+        effectiveConfig = {
+          apiKey: savedActiveProfile.apiKey,
+          model: savedActiveProfile.model,
+          apiEndpoint: savedActiveProfile.apiEndpoint,
+          projectId: savedActiveProfile.projectId,
+          location: savedActiveProfile.location,
           ...config,
         };
       }
     }
   }
 
-  type = type || LLMProviderType.OPENAI;
+  providerType = providerType || LLMProviderType.OPENAI;
 
-  switch (type) {
+  switch (providerType) {
     case LLMProviderType.OPENAI:
-      return new OpenAIProvider(config);
+      return new OpenAIProvider(effectiveConfig);
     case LLMProviderType.OLLAMA:
-      return new OllamaProvider(config);
+      return new OllamaProvider(effectiveConfig);
     case LLMProviderType.GEMINI:
-      return new GeminiProvider(config);
+      return new GeminiProvider(effectiveConfig);
+    case LLMProviderType.VERTEXAI:
+      if (!effectiveConfig.projectId || !effectiveConfig.location) {
+        throw new Error("Vertex AI provider requires projectId and location in config.");
+      }
+      return new VertexAIProvider(effectiveConfig as Required<Pick<typeof effectiveConfig, 'projectId' | 'location'>> & typeof effectiveConfig);
     default:
-      throw new Error(`Unsupported LLM provider type: ${type}`);
+      throw new Error(`Unsupported LLM provider type: ${providerType}`);
   }
 }
 

@@ -44,6 +44,7 @@
   "homepage": "https://github.com/kamrul1157024/terminal-ai#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@google-cloud/vertexai": "^1.9.3",
     "@google/generative-ai": "^0.24.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",

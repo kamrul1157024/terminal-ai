@@ -14,8 +14,11 @@ export interface ProfileConfig {
   name: string;
   provider: LLMProviderType;
   model: string;
-  apiKey?: string;
-  apiEndpoint?: string;
+  apiKey?: string; // Used by OpenAI, standard Gemini
+  apiEndpoint?: string; // Used by Ollama
+  // Vertex AI specific settings
+  projectId?: string; // GCP Project ID for Vertex AI
+  location?: string; // GCP Location (e.g., us-central1) for Vertex AI
 }
 
 /**

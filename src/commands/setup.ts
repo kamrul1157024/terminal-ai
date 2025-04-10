@@ -108,7 +108,8 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
       message: "Select the AI provider to use:",
       choices: [
         { name: "OpenAI", value: LLMProviderType.OPENAI },
-        { name: "Gemini", value: LLMProviderType.GEMINI },
+        { name: "Gemini (via Google AI API)", value: LLMProviderType.GEMINI },
+        { name: "Gemini (via Vertex AI)", value: LLMProviderType.VERTEXAI },
         { name: "Ollama (Local)", value: LLMProviderType.OLLAMA },
         // Add more providers here as they become available
       ],
@@ -117,19 +118,10 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
 
   let apiKey = "";
   let apiEndpoint = "";
+  let projectId = "";
+  let location = "";
 
-  // Only prompt for API key if not using Ollama (which might not need an API key)
-  if (provider !== LLMProviderType.OLLAMA) {
-    const { key } = await inquirer.prompt([
-      {
-        type: "input",
-        name: "key",
-        message: "Enter your API key:",
-        validate: (input) => (input.length > 0 ? true : "API key is required"),
-      },
-    ]);
-    apiKey = key;
-  } else {
+  if (provider === LLMProviderType.OLLAMA) {
     // For Ollama, prompt for endpoint
     const { endpoint } = await inquirer.prompt([
       {
@@ -140,6 +132,41 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
       },
     ]);
     apiEndpoint = endpoint;
+  } else if (provider === LLMProviderType.VERTEXAI) {
+    // For Vertex AI, prompt for Project ID and Location
+    logger.info("\nVertex AI uses Google Cloud Application Default Credentials (ADC).")
+    logger.info("Ensure you have authenticated via `gcloud auth application-default login`.")
+    const { projId } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "projId",
+        message: "Enter your Google Cloud Project ID:",
+        validate: (input) => (input.length > 0 ? true : "Project ID is required"),
+      },
+    ]);
+    projectId = projId;
+
+    const { loc } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "loc",
+        message: "Enter the GCP Location (e.g., us-central1):",
+        validate: (input) => (input.length > 0 ? true : "Location is required"),
+      },
+    ]);
+    location = loc;
+
+  } else {
+    // For OpenAI and standard Gemini, prompt for API key
+    const { key } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "key",
+        message: `Enter your ${provider === LLMProviderType.GEMINI ? 'Google AI' : 'OpenAI'} API key:`, // Clarify which key
+        validate: (input) => (input.length > 0 ? true : "API key is required"),
+      },
+    ]);
+    apiKey = key;
   }
 
   // Get models from configuration file for the selected provider
@@ -175,14 +202,18 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
     model,
   };
 
-  // Only add API key if it's set
+  // Add relevant details based on provider
   if (apiKey) {
     profileConfig.apiKey = apiKey;
   }
-
-  // Add API endpoint for Ollama
   if (apiEndpoint) {
     profileConfig.apiEndpoint = apiEndpoint;
+  }
+  if (projectId) {
+    profileConfig.projectId = projectId;
+  }
+  if (location) {
+    profileConfig.location = location;
   }
 
   return profileConfig;
