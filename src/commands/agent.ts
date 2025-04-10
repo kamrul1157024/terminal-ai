@@ -206,6 +206,10 @@ export async function runAgent({
           content: input,
         });
       }
+      else {
+        break;
+      }
+
     }
 
     // Show a nice exit message with cost info
