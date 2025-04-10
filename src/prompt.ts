@@ -13,7 +13,7 @@ const getSystemPrompt = async (context: string) => {
   then you are going to git commit with the generated commit message
   if usser does not have staged files you are going run git status and diff to find changes then generate a commit message and commit the changes
 
-  you will discover workflow from user prompt and execute the workflow
+  you will always discover workflow using the discover_workflow tool based on the user prompt and execute the workflow
 
   when user only provide a command, reason about what need to do before running the command.
 
