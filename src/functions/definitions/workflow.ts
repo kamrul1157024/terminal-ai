@@ -38,6 +38,7 @@ const workflowDiscovery = async (prompt: string): Promise<string> => {
       messages,
       (token) => {
         content += token;
+        logger.info(token);
       }
     );
     
