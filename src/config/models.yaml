@@ -20,3 +20,22 @@ ollama:
       pricing:
         input: 0.0 # Local models are free
         output: 0.0 # Local models are free
+
+gemini:
+  default: gemini-2.0-flash
+  models:
+    - name: Gemini 2.5 Pro Preview
+      value: gemini-2.5-pro-exp-03-25
+      pricing:
+        input: 1.25 # Price per million tokens for input (<= 200k tokens)
+        output: 10.00 # Price per million tokens for output (<= 200k tokens)
+    - name: Gemini 2.0 Flash
+      value: gemini-2.0-flash
+      pricing:
+        input: 0.10 # Price per million tokens for input (text/image/video)
+        output: 0.40 # Price per million tokens for output
+    - name: Gemini 2.0 Flash-Lite
+      value: gemini-2.0-flash-lite
+      pricing:
+        input: 0.075 # Price per million tokens for input
+        output: 0.30 # Price per million tokens for output

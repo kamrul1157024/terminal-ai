@@ -108,6 +108,7 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
       message: "Select the AI provider to use:",
       choices: [
         { name: "OpenAI", value: LLMProviderType.OPENAI },
+        { name: "Gemini", value: LLMProviderType.GEMINI },
         { name: "Ollama (Local)", value: LLMProviderType.OLLAMA },
         // Add more providers here as they become available
       ],

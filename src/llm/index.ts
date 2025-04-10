@@ -2,6 +2,7 @@ import { readConfig } from "../config/config";
 import { getActiveProfile } from "../utils/context-vars";
 
 import { LLMProvider, LLMProviderConfig } from "./interface";
+import { GeminiProvider } from "./providers/gemini-provider";
 import { OllamaProvider } from "./providers/ollama-provider";
 import { OpenAIProvider } from "./providers/openai-provider";
 
@@ -58,6 +59,8 @@ export function createLLMProvider(
       return new OpenAIProvider(config);
     case LLMProviderType.OLLAMA:
       return new OllamaProvider(config);
+    case LLMProviderType.GEMINI:
+      return new GeminiProvider(config);
     default:
       throw new Error(`Unsupported LLM provider type: ${type}`);
   }
