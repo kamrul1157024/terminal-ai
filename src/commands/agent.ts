@@ -168,8 +168,6 @@ export async function runAgent({
           conversationHistory,
         });
 
-        console.log(JSON.stringify(history, null, 2));
-
         conversationHistory = history;
 
         // Update the thread with new messages
