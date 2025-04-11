@@ -11,8 +11,8 @@ import {
   CompletionOptions,
   CompletionResult,
   TokenUsage,
-  FunctionCallResult,
-  FunctionDefinition,
+  ToolCallResult,
+  ToolDefinition,
 } from "../interface";
 
 // Extended config for Ollama provider
@@ -60,7 +60,7 @@ export class OllamaProvider implements LLMProvider {
         });
       }
 
-      if (msg.role === "function_call") {
+      if (msg.role === "tool_call") {
         ollamaMessages.push({
           role: "assistant",
           content: "",
@@ -77,7 +77,7 @@ export class OllamaProvider implements LLMProvider {
       }
 
       // Handle function calls and results if needed
-      if (msg.role === "function") {
+      if (msg.role === "tool") {
         msg.content.forEach((call) => {
           ollamaMessages.push({
             role: "tool",
@@ -95,7 +95,7 @@ export class OllamaProvider implements LLMProvider {
       name: string;
       arguments: Record<string, unknown>;
     };
-  }): FunctionCallResult {
+  }): ToolCallResult {
     return {
       name: toolCall.function.name,
       arguments: toolCall.function.arguments || {},
@@ -103,7 +103,7 @@ export class OllamaProvider implements LLMProvider {
     };
   }
 
-  private mapToOllamaTools(functions: FunctionDefinition[]): Array<{
+  private mapToOllamaTools(tools: ToolDefinition[]): Array<{
     type: string;
     function: {
       name: string;
@@ -111,12 +111,12 @@ export class OllamaProvider implements LLMProvider {
       parameters: Record<string, unknown>;
     };
   }> {
-    return functions.map((func) => ({
+    return tools.map((tool) => ({
       type: "function",
       function: {
-        name: func.name,
-        description: func.description,
-        parameters: func.parameters,
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
       },
     }));
   }
@@ -128,8 +128,8 @@ export class OllamaProvider implements LLMProvider {
   ): Promise<CompletionResult> {
     try {
       const ollamaMessages = this.mapToOllamaMessages(messages);
-      const ollamaTools = options?.functions
-        ? this.mapToOllamaTools(options.functions)
+      const ollamaTools = options?.tools
+        ? this.mapToOllamaTools(options.tools)
         : [];
 
       const requestBody: {
@@ -177,7 +177,7 @@ export class OllamaProvider implements LLMProvider {
       );
 
       let fullContent = "";
-      let functionCalls: FunctionCallResult[] = [];
+      let toolCalls: ToolCallResult[] = [];
 
       // Handle streaming response
       const stream = response.data as NodeJS.ReadableStream;
@@ -207,7 +207,7 @@ export class OllamaProvider implements LLMProvider {
                 }
 
                 if (data.message?.tool_calls) {
-                  functionCalls = data.message.tool_calls.map(
+                  toolCalls = data.message.tool_calls.map(
                     this.mapOllamaToolsToFunctionCall,
                   );
                 }
@@ -224,8 +224,8 @@ export class OllamaProvider implements LLMProvider {
         stream.on("end", () => {
           const result: CompletionResult = { content: fullContent };
 
-          if (functionCalls.length > 0) {
-            result.functionCalls = functionCalls;
+          if (toolCalls.length > 0) {
+            result.toolCalls = toolCalls;
           }
 
           const usage: TokenUsage = {
@@ -322,7 +322,7 @@ Try checking:
     let totalTokens = 0;
 
     for (const message of messages) {
-      if (message.role === "function") {
+      if (message.role === "tool") {
         for (const call of message.content) {
           totalTokens += countPromptTokens(
             call.result + call.error,

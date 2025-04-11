@@ -29,8 +29,7 @@ export interface TerminalAIConfig {
   profiles: ProfileConfig[];
 }
 
-
-if(!fs.existsSync(path.join(os.homedir(), ".terminal-ai"))) {
+if (!fs.existsSync(path.join(os.homedir(), ".terminal-ai"))) {
   fs.mkdirSync(path.join(os.homedir(), ".terminal-ai"), { recursive: true });
 }
 

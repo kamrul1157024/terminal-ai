@@ -134,14 +134,19 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
     apiEndpoint = endpoint;
   } else if (provider === LLMProviderType.VERTEXAI) {
     // For Vertex AI, prompt for Project ID and Location
-    logger.info("\nVertex AI uses Google Cloud Application Default Credentials (ADC).")
-    logger.info("Ensure you have authenticated via `gcloud auth application-default login`.")
+    logger.info(
+      "\nVertex AI uses Google Cloud Application Default Credentials (ADC).",
+    );
+    logger.info(
+      "Ensure you have authenticated via `gcloud auth application-default login`.",
+    );
     const { projId } = await inquirer.prompt([
       {
         type: "input",
         name: "projId",
         message: "Enter your Google Cloud Project ID:",
-        validate: (input) => (input.length > 0 ? true : "Project ID is required"),
+        validate: (input) =>
+          input.length > 0 ? true : "Project ID is required",
       },
     ]);
     projectId = projId;
@@ -155,14 +160,13 @@ async function setupNewProfile(): Promise<Config.ProfileConfig> {
       },
     ]);
     location = loc;
-
   } else {
     // For OpenAI and standard Gemini, prompt for API key
     const { key } = await inquirer.prompt([
       {
         type: "input",
         name: "key",
-        message: `Enter your ${provider === LLMProviderType.GEMINI ? 'Google AI' : 'OpenAI'} API key:`, // Clarify which key
+        message: `Enter your ${provider === LLMProviderType.GEMINI ? "Google AI" : "OpenAI"} API key:`, // Clarify which key
         validate: (input) => (input.length > 0 ? true : "API key is required"),
       },
     ]);

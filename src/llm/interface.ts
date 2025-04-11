@@ -2,32 +2,39 @@ export type MessageRole =
   | "system"
   | "user"
   | "assistant"
-  | "function"
-  | "function_call";
+  | "tool"
+  | "tool_call";
 
-export type FunctionCallResponse = {
+export type ToolCallResponse = {
   name: string;
   result: string;
   error?: string;
   callId: string;
 };
 
-export type Message<T extends MessageRole> = T extends "function"
+export type ToolCallResult = {
+  name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arguments: Record<string, any>;
+  callId: string;
+};
+
+export type Message<T extends MessageRole> = T extends "tool"
   ? {
       role: T;
-      content: FunctionCallResponse[];
+      content: ToolCallResponse[];
     }
-  : T extends "function_call"
+  : T extends "tool_call"
     ? {
         role: T;
-        content: FunctionCallResult[];
+        content: ToolCallResult[];
       }
     : {
         role: T;
         content: string;
       };
 
-export type FunctionParameter = {
+export type ToolParameter = {
   type: string;
   description?: string;
   enum?: string[];
@@ -36,33 +43,26 @@ export type FunctionParameter = {
   };
 };
 
-export type FunctionDefinition = {
+export type ToolDefinition = {
   name: string;
   description: string;
   parameters:
     | {
         type: "object";
-        properties: Record<string, FunctionParameter>;
+        properties: Record<string, ToolParameter>;
         required?: string[];
       }
     | {};
 };
 
-export type FunctionCallResult = {
-  name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  arguments: Record<string, any>;
-  callId: string;
-};
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FunctionHandler = (args: any) => any;
+export type ToolHandler = (args: any) => any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FunctionUIRender = (args: any) => void;
+export type ToolUIRender = (args: any) => void;
 
 export type CompletionOptions = {
-  functions?: FunctionDefinition[];
-  function_call?: "auto" | "none" | { name: string };
+  tools?: ToolDefinition[];
+  tool_call?: "auto" | "none" | { name: string };
 };
 
 export type TokenUsage = {
@@ -73,7 +73,7 @@ export type TokenUsage = {
 
 export type CompletionResult = {
   content: string;
-  functionCalls?: FunctionCallResult[];
+  toolCalls?: ToolCallResult[];
   usage?: TokenUsage;
 };
 

@@ -10,8 +10,8 @@ import {
   CompletionOptions,
   CompletionResult,
   TokenUsage,
-  FunctionCallResult,
-  FunctionDefinition,
+  ToolDefinition,
+  ToolCallResult,
 } from "../interface";
 
 export class OpenAIProvider implements LLMProvider {
@@ -54,7 +54,7 @@ export class OpenAIProvider implements LLMProvider {
         } satisfies OpenAI.ChatCompletionAssistantMessageParam);
       }
 
-      if (msg.role === "function_call") {
+      if (msg.role === "tool_call") {
         openaiMessages.push({
           role: "assistant",
           tool_calls: msg.content.map((call) => ({
@@ -77,7 +77,7 @@ export class OpenAIProvider implements LLMProvider {
         } satisfies OpenAI.ChatCompletionSystemMessageParam);
       }
 
-      if (msg.role === "function") {
+      if (msg.role === "tool") {
         msg.content.forEach((call) => {
           openaiMessages.push({
             role: "tool",
@@ -91,15 +91,13 @@ export class OpenAIProvider implements LLMProvider {
     return openaiMessages;
   }
 
-  mapToOpenAITools(
-    functions: FunctionDefinition[],
-  ): OpenAI.ChatCompletionTool[] {
-    return functions.map((func) => ({
+  mapToOpenAITools(tools: ToolDefinition[]): OpenAI.ChatCompletionTool[] {
+    return tools.map((tool) => ({
       type: "function",
       function: {
-        name: func.name,
-        description: func.description,
-        parameters: func.parameters,
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
       },
     }));
   }
@@ -110,7 +108,7 @@ export class OpenAIProvider implements LLMProvider {
       arguments: string;
     };
     id: string;
-  }): FunctionCallResult {
+  }): ToolCallResult {
     return {
       name: toolCall.function.name,
       arguments: toolCall.function.arguments
@@ -127,7 +125,7 @@ export class OpenAIProvider implements LLMProvider {
   ): Promise<CompletionResult> {
     try {
       const openaiMessages = this.mapToOpenAIMessages(messages);
-      const openaiTools = this.mapToOpenAITools(options?.functions || []);
+      const openaiTools = this.mapToOpenAITools(options?.tools || []);
 
       const requestParams = {
         model: this.model,
@@ -166,13 +164,13 @@ export class OpenAIProvider implements LLMProvider {
         }
       }
 
-      const functionCalls = Object.values(toolCallMap).map(
+      const toolCalls = Object.values(toolCallMap).map(
         this.mapOpenAIToolsCallTOGenericFunctionCall,
       );
       const result: CompletionResult = { content: fullContent };
 
-      if (functionCalls.length > 0) {
-        result.functionCalls = functionCalls;
+      if (toolCalls.length > 0) {
+        result.toolCalls = toolCalls;
       }
 
       const usage: TokenUsage = {
@@ -193,7 +191,7 @@ export class OpenAIProvider implements LLMProvider {
     let totalTokens = 0;
 
     for (const message of messages) {
-      if (message.role === "function") {
+      if (message.role === "tool") {
         for (const call of message.content) {
           totalTokens += countPromptTokens(
             call.result + call.error,

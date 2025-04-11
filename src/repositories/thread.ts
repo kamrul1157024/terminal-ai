@@ -74,7 +74,6 @@ export class SQLiteThreadRepository implements ThreadRepository {
     // Create base directory in user's home directory
     const homeDir = process.env.HOME || process.env.USERPROFILE || "";
     const dbPath = path.join(homeDir, ".terminal-ai", "thread-store.db");
-  
 
     try {
       this.db = new Database(dbPath);

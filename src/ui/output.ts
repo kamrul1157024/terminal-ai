@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { FunctionManager } from "../functions/manager";
 import { Message, MessageRole } from "../llm/interface";
 import { logger } from "../logger";
 import { Thread } from "../repositories";
+import { ToolManager } from "../tools/manager";
 import { getAgentMode } from "../utils/context-vars";
 
 export function displayThreadsList(threads: Thread[]) {
@@ -33,7 +33,7 @@ export function formatThreadsForDisplay(threads: Thread[]) {
 
 export function displayConversationHistory(
   thread: Thread,
-  functionManager: FunctionManager,
+  functionManager: ToolManager,
 ) {
   if (thread.messages.length > 0) {
     thread.messages.forEach((message: Message<MessageRole>) => {
@@ -46,12 +46,12 @@ export function displayConversationHistory(
         showAssistantMessage(message.content);
         return;
       }
-      if (message.role === "function_call") {
-        message.content.forEach((functionCall) => {
-          functionManager.handleFunctionCallRender(functionCall);
+      if (message.role === "tool_call") {
+        message.content.forEach((toolCall) => {
+          functionManager.handleToolCallRender(toolCall);
         });
       }
-      if (message.role === "function") {
+      if (message.role === "tool") {
         const data = JSON.parse(message.content[0].result);
         if (data.error) {
           logger.error(data.error);

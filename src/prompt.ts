@@ -25,16 +25,19 @@ const getSystemPrompt = async (context: string) => {
 
   const aliases = await getUserAliases();
   const availableCommands = await getAvailableCommands();
-  
-  let fullContext = context || '';
 
+  let fullContext = context || "";
 
   if (aliases) {
-    fullContext = fullContext ? `${fullContext}\n\nUSER ALIASES:\n${aliases}` : `USER ALIASES:\n${aliases}`;
+    fullContext = fullContext
+      ? `${fullContext}\n\nUSER ALIASES:\n${aliases}`
+      : `USER ALIASES:\n${aliases}`;
   }
 
   if (availableCommands) {
-    fullContext = fullContext ? `${fullContext}\n\nAVAILABLE COMMANDS:\n${availableCommands}` : `AVAILABLE COMMANDS:\n${availableCommands}`;
+    fullContext = fullContext
+      ? `${fullContext}\n\nAVAILABLE COMMANDS:\n${availableCommands}`
+      : `AVAILABLE COMMANDS:\n${availableCommands}`;
   }
 
   if (fullContext) {
