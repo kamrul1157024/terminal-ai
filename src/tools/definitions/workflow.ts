@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createLLMProvider } from "../../llm";
 import { LLMProvider, Message, MessageRole } from "../../llm/interface";
 import { logger } from "../../logger";
+import { terminalOutput } from "../../ui/output";
 import { LLMTool } from "../types";
 
 /**
@@ -36,7 +37,7 @@ const workflowDiscovery = async (prompt: string): Promise<string> => {
     // Use the streaming API and collect results
     await llmProvider.generateStreamingCompletion(messages, (token) => {
       content += token;
-      logger.info(token);
+      terminalOutput(token);
     });
 
     if (!content) {
