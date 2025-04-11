@@ -48,25 +48,25 @@ async function spawnCommand(
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       shell,
-      stdio: ['inherit', 'pipe', 'pipe']
+      stdio: ["inherit", "pipe", "pipe"],
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    child.stdout?.on('data', (data: Buffer) => {
+    child.stdout?.on("data", (data: Buffer) => {
       const output = data.toString();
       stdout += output;
       terminalOutput(output);
     });
 
-    child.stderr?.on('data', (data: Buffer) => {
+    child.stderr?.on("data", (data: Buffer) => {
       const error = data.toString();
       stderr += error;
       terminalError(error);
     });
 
-    child.on('close', (code: number) => {
+    child.on("close", (code: number) => {
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
@@ -74,7 +74,7 @@ async function spawnCommand(
       }
     });
 
-    child.on('error', (error: Error) => {
+    child.on("error", (error: Error) => {
       reject(error);
     });
   });
@@ -125,7 +125,7 @@ export async function executeCommand(
             "Administrator privileges are required. Please run this command manually with admin rights.",
         };
       } else {
-        return spawnCommand('sudo', [executableCommand], shell);
+        return spawnCommand("sudo", [executableCommand], shell);
       }
     }
 

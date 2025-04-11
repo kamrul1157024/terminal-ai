@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createLLMProvider } from "../../llm";
 import { LLMProvider, Message, MessageRole } from "../../llm/interface";
 import { logger } from "../../logger";
-import { LLMFunction } from "../types";
+import { LLMTool } from "../types";
 
 /**
  * Analyzes a prompt to discover potential workflows using LLM
@@ -12,7 +12,7 @@ const workflowDiscovery = async (prompt: string): Promise<string> => {
   try {
     // Create an LLM provider instance using the configured provider
     const llmProvider: LLMProvider = createLLMProvider();
-    
+
     // Define system prompt for workflow discovery
     const systemPrompt = `You are a workflow discovery assistant. 
     Analyze the user's prompt and break it down into a clear, step-by-step workflow.
@@ -22,30 +22,27 @@ const workflowDiscovery = async (prompt: string): Promise<string> => {
     3. Any dependencies or prerequisites
 
     Format your response as a numbered list of steps.`;
-    
+
     // Create messages for the LLM call
     const messages: Message<MessageRole>[] = [
       { role: "system", content: systemPrompt },
-      { role: "user", content: prompt }
+      { role: "user", content: prompt },
     ];
-    
+
     // Make the actual LLM call
     logger.info("Making LLM call to discover workflow...");
-    
+
     let content = "";
     // Use the streaming API and collect results
-    await llmProvider.generateStreamingCompletion(
-      messages,
-      (token) => {
-        content += token;
-        logger.info(token);
-      }
-    );
-    
+    await llmProvider.generateStreamingCompletion(messages, (token) => {
+      content += token;
+      logger.info(token);
+    });
+
     if (!content) {
       throw new Error("LLM returned empty workflow");
     }
-    
+
     return `Discovered Workflow:\n${content}`;
   } catch (error) {
     logger.error(`Error during workflow discovery: ${error}`);
@@ -56,7 +53,7 @@ const workflowDiscovery = async (prompt: string): Promise<string> => {
       "3. Generate appropriate terminal commands",
       "4. Execute commands in sequence",
     ];
-    
+
     return `Discovered Workflow (Fallback):\n${fallbackSteps.join("\n")}`;
   }
 };
@@ -67,9 +64,10 @@ const ArgumentsSchema = z.object({
   }),
 });
 
-export const workflowDiscoverer: LLMFunction<typeof ArgumentsSchema> = {
+export const workflowDiscoverer: LLMTool<typeof ArgumentsSchema> = {
   name: "discover_workflow",
-  description: "Analyzes a prompt to discover potential workflows and execution steps",
+  description:
+    "Analyzes a prompt to discover potential workflows and execution steps",
   args: ArgumentsSchema,
   prompt: `
     Use the \`discover_workflow\` function to analyze user prompts and extract potential workflows.
@@ -80,14 +78,17 @@ export const workflowDiscoverer: LLMFunction<typeof ArgumentsSchema> = {
       const workflow = await workflowDiscovery(prompt);
       return { data: workflow };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return { 
-        data: "", 
-        error: `Error discovering workflow: ${errorMessage}` 
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        data: "",
+        error: `Error discovering workflow: ${errorMessage}`,
       };
     }
   },
   render: ({ prompt }) => {
-    logger.info(`Discovering workflow from prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`);
+    logger.info(
+      `Discovering workflow from prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? "..." : ""}"`,
+    );
   },
 };

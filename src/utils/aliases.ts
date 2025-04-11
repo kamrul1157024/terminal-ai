@@ -19,4 +19,4 @@ export async function getAvailableCommands(): Promise<string> {
   } catch {
     return "";
   }
-} 
+}

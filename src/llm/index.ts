@@ -20,7 +20,10 @@ export function createLLMProvider(
   config: LLMProviderConfig = {},
 ): LLMProvider {
   const activeProfile = getActiveProfile();
-  let effectiveConfig: LLMProviderConfig & { projectId?: string; location?: string } = { ...config };
+  let effectiveConfig: LLMProviderConfig & {
+    projectId?: string;
+    location?: string;
+  } = { ...config };
   let providerType = type;
 
   if (activeProfile) {
@@ -33,8 +36,7 @@ export function createLLMProvider(
       location: activeProfile.location,
       ...config,
     };
-  }
-  else if (!providerType || Object.keys(config).length === 0) {
+  } else if (!providerType || Object.keys(config).length === 0) {
     const savedConfig = readConfig();
     if (savedConfig) {
       const savedActiveProfile = savedConfig.profiles.find(
@@ -65,9 +67,16 @@ export function createLLMProvider(
       return new GeminiProvider(effectiveConfig);
     case LLMProviderType.VERTEXAI:
       if (!effectiveConfig.projectId || !effectiveConfig.location) {
-        throw new Error("Vertex AI provider requires projectId and location in config.");
+        throw new Error(
+          "Vertex AI provider requires projectId and location in config.",
+        );
       }
-      return new VertexAIProvider(effectiveConfig as Required<Pick<typeof effectiveConfig, 'projectId' | 'location'>> & typeof effectiveConfig);
+      return new VertexAIProvider(
+        effectiveConfig as Required<
+          Pick<typeof effectiveConfig, "projectId" | "location">
+        > &
+          typeof effectiveConfig,
+      );
     default:
       throw new Error(`Unsupported LLM provider type: ${providerType}`);
   }

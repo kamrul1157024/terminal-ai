@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import ora from "ora";
 
-import { FunctionManager } from "../functions/manager";
 import {
   LLMProvider,
   Message,
@@ -9,32 +8,30 @@ import {
   CompletionOptions,
   TokenUsage,
 } from "../llm/interface";
+import { ToolManager } from "../tools/manager";
 import { isTTY, showAssistantMessagePrefix } from "../ui/output";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
   "Respond with ONLY the terminal command, nothing else.";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type FunctionHandler = (args: Record<string, any>) => Promise<string>;
-
 export class LLM {
   private llmProvider: LLMProvider;
   private systemPrompt: string;
-  private functionManager: FunctionManager;
+  private toolManager: ToolManager;
 
   constructor({
     llmProvider,
     systemPrompt = DEFAULT_TERMINAL_SYSTEM_PROMPT,
-    functionManager = new FunctionManager(),
+    toolManager = new ToolManager(),
   }: {
     llmProvider: LLMProvider;
     systemPrompt?: string;
-    functionManager?: FunctionManager;
+    toolManager?: ToolManager;
   }) {
     this.llmProvider = llmProvider;
     this.systemPrompt = systemPrompt;
-    this.functionManager = functionManager;
+    this.toolManager = toolManager;
   }
 
   async generateStreamingCompletion({
@@ -55,9 +52,9 @@ export class LLM {
     ];
 
     const options: CompletionOptions = {};
-    if (this.functionManager.getFunctions().length > 0) {
-      options.functions = this.functionManager.getFunctions();
-      options.function_call = "auto";
+    if (this.toolManager.getTools().length > 0) {
+      options.tools = this.toolManager.getTools();
+      options.tool_call = "auto";
     }
 
     const spinner = ora({
@@ -84,24 +81,24 @@ export class LLM {
       spinner.stop();
     }
 
-    if (completion.functionCalls && completion.functionCalls.length > 0) {
+    if (completion.toolCalls && completion.toolCalls.length > 0) {
       history.push({
-        role: "function_call",
-        content: completion.functionCalls,
+        role: "tool_call",
+        content: completion.toolCalls,
       });
 
-      for (const functionCall of completion.functionCalls) {
-        this.functionManager.handleFunctionCallRender(functionCall);
+      for (const toolCall of completion.toolCalls) {
+        this.toolManager.handleToolCallRender(toolCall);
       }
 
       const results = await Promise.all(
-        completion.functionCalls.map(
-          this.functionManager.handleFunctionCall.bind(this.functionManager),
+        completion.toolCalls.map(
+          this.toolManager.handleToolCall.bind(this.toolManager),
         ),
       );
 
       history.push({
-        role: "function",
+        role: "tool",
         content: results.map((result) => ({
           name: result.name,
           result: String(result.result),

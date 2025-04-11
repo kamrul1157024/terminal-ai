@@ -19,48 +19,61 @@ import {
   CompletionOptions,
   CompletionResult,
   TokenUsage,
-  FunctionCallResult,
-  FunctionDefinition,
-  FunctionParameter,
+  ToolCallResult,
+  ToolDefinition,
+  ToolParameter,
 } from "../interface";
 
 // Helper function to map our FunctionParameter to Vertex AI Schema
 // Adjusted to use Vertex AI types
-const mapParameterToVertexSchema = (param: FunctionParameter | { type: string }): VertexSchema => {
-  if (!('description' in param)) { 
-     if (param.type === 'string') return { type: VertexSchemaType.STRING };
-     if (param.type === 'number') return { type: VertexSchemaType.NUMBER };
-     if (param.type === 'integer') return { type: VertexSchemaType.INTEGER };
-     if (param.type === 'boolean') return { type: VertexSchemaType.BOOLEAN };
-     return { type: VertexSchemaType.STRING };
+const mapParameterToVertexSchema = (
+  param: ToolParameter | { type: string },
+): VertexSchema => {
+  if (!("description" in param)) {
+    if (param.type === "string") return { type: VertexSchemaType.STRING };
+    if (param.type === "number") return { type: VertexSchemaType.NUMBER };
+    if (param.type === "integer") return { type: VertexSchemaType.INTEGER };
+    if (param.type === "boolean") return { type: VertexSchemaType.BOOLEAN };
+    return { type: VertexSchemaType.STRING };
   }
-  if (param.type === 'object' && 'properties' in param && param.properties) {
+  if (param.type === "object" && "properties" in param && param.properties) {
     return {
       type: VertexSchemaType.OBJECT,
       description: param.description,
-      properties: Object.entries(param.properties).reduce((acc, [key, value]) => {
-        acc[key] = mapParameterToVertexSchema(value);
-        return acc;
-      }, {} as { [k: string]: VertexSchema }),
-      required: ('required' in param && Array.isArray(param.required)) ? param.required : [],
-    }
-  } else if (param.type === 'array' && 'items' in param && param.items) {
+      properties: Object.entries(param.properties).reduce(
+        (acc, [key, value]) => {
+          acc[key] = mapParameterToVertexSchema(value);
+          return acc;
+        },
+        {} as { [k: string]: VertexSchema },
+      ),
+      required:
+        "required" in param && Array.isArray(param.required)
+          ? param.required
+          : [],
+    };
+  } else if (param.type === "array" && "items" in param && param.items) {
     return {
       type: VertexSchemaType.ARRAY,
       description: param.description,
       items: mapParameterToVertexSchema(param.items),
-    }
-  } else if (param.type === 'string') {
-    if ('enum' in param && Array.isArray(param.enum) && param.enum.length > 0) {
-      return { type: VertexSchemaType.STRING, description: param.description, enum: param.enum, format: 'enum' }; 
+    };
+  } else if (param.type === "string") {
+    if ("enum" in param && Array.isArray(param.enum) && param.enum.length > 0) {
+      return {
+        type: VertexSchemaType.STRING,
+        description: param.description,
+        enum: param.enum,
+        format: "enum",
+      };
     } else {
       return { type: VertexSchemaType.STRING, description: param.description };
     }
-  } else if (param.type === 'number') {
+  } else if (param.type === "number") {
     return { type: VertexSchemaType.NUMBER, description: param.description };
-  } else if (param.type === 'integer') {
+  } else if (param.type === "integer") {
     return { type: VertexSchemaType.INTEGER, description: param.description };
-  } else if (param.type === 'boolean') {
+  } else if (param.type === "boolean") {
     return { type: VertexSchemaType.BOOLEAN, description: param.description };
   }
   return { type: VertexSchemaType.STRING, description: param.description };
@@ -80,10 +93,13 @@ export class VertexAIProvider implements LLMProvider {
   constructor(config: VertexAIProviderConfig) {
     if (!config.projectId || !config.location) {
       throw new Error(
-        'Vertex AI requires Project ID and Location. Run "ai init" to configure.'
+        'Vertex AI requires Project ID and Location. Run "ai init" to configure.',
       );
     }
-    this.vertexAI = new VertexAI({ project: config.projectId, location: config.location });
+    this.vertexAI = new VertexAI({
+      project: config.projectId,
+      location: config.location,
+    });
     this.modelId = config.model || "gemini-1.5-flash-001"; // Use configured model or default
 
     // Instantiate the model
@@ -99,18 +115,41 @@ export class VertexAIProvider implements LLMProvider {
   }
 
   // Specific mapping for Vertex AI types
-  private mapToVertexAIMessages(messages: Message<MessageRole>[]): VertexContent[] {
+  private mapToVertexAIMessages(
+    messages: Message<MessageRole>[],
+  ): VertexContent[] {
     const vertexMessages: VertexContent[] = [];
     messages.forEach((msg) => {
       if (msg.role === "user") {
-        vertexMessages.push({ role: "user", parts: [{ text: msg.content as string }] });
+        vertexMessages.push({
+          role: "user",
+          parts: [{ text: msg.content as string }],
+        });
       } else if (msg.role === "assistant") {
-        vertexMessages.push({ role: "model", parts: [{ text: msg.content as string }] });
-      } else if (msg.role === "function_call") {
-        vertexMessages.push({ role: "model", parts: msg.content.map(call => ({ functionCall: { name: call.name, args: call.arguments || {} } })) as VertexPart[] });
-      } else if (msg.role === "function") {
-        msg.content.forEach(call => {
-          vertexMessages.push({ role: "tool", parts: [{ functionResponse: { name: call.name, response: { content: call.result + (call.error || "") } } }] as VertexPart[] });
+        vertexMessages.push({
+          role: "model",
+          parts: [{ text: msg.content as string }],
+        });
+      } else if (msg.role === "tool_call") {
+        vertexMessages.push({
+          role: "model",
+          parts: msg.content.map((call) => ({
+            functionCall: { name: call.name, args: call.arguments || {} },
+          })) as VertexPart[],
+        });
+      } else if (msg.role === "tool") {
+        msg.content.forEach((call) => {
+          vertexMessages.push({
+            role: "tool",
+            parts: [
+              {
+                functionResponse: {
+                  name: call.name,
+                  response: { content: call.result + (call.error || "") },
+                },
+              },
+            ] as VertexPart[],
+          });
         });
       } // System messages handled via systemInstruction
     });
@@ -118,23 +157,43 @@ export class VertexAIProvider implements LLMProvider {
   }
 
   // Specific mapping for Vertex AI types
-  private mapToVertexAIFunctions(functions: FunctionDefinition[]): VertexTool[] {
-    if (functions.length === 0) return [];
-    return [{
-      functionDeclarations: functions.map(func => {
-        let mappedProperties: { [k: string]: VertexSchema } = {};
-        let requiredProperties: string[] = [];
-        if (func.parameters && typeof func.parameters === 'object' && 'properties' in func.parameters && func.parameters.properties) {
-          mappedProperties = Object.entries(func.parameters.properties).reduce((acc, [key, param]) => {
-            acc[key] = mapParameterToVertexSchema(param);
-            return acc;
-          }, {} as { [k: string]: VertexSchema });
-          requiredProperties = ('required' in func.parameters && Array.isArray(func.parameters.required)) ? func.parameters.required : [];
-        }
-        const parameters: VertexFunctionDeclarationSchema = { type: VertexSchemaType.OBJECT, properties: mappedProperties, required: requiredProperties };
-        return { name: func.name, description: func.description, parameters };
-      })
-    }];
+  private mapToVertexAITools(tools: ToolDefinition[]): VertexTool[] {
+    if (tools.length === 0) return [];
+    return [
+      {
+        functionDeclarations: tools.map((tool) => {
+          let mappedProperties: { [k: string]: VertexSchema } = {};
+          let requiredProperties: string[] = [];
+          if (
+            tool.parameters &&
+            typeof tool.parameters === "object" &&
+            "properties" in tool.parameters &&
+            tool.parameters.properties
+          ) {
+            mappedProperties = Object.entries(
+              tool.parameters.properties,
+            ).reduce(
+              (acc, [key, param]) => {
+                acc[key] = mapParameterToVertexSchema(param);
+                return acc;
+              },
+              {} as { [k: string]: VertexSchema },
+            );
+            requiredProperties =
+              "required" in tool.parameters &&
+              Array.isArray(tool.parameters.required)
+                ? tool.parameters.required
+                : [];
+          }
+          const parameters: VertexFunctionDeclarationSchema = {
+            type: VertexSchemaType.OBJECT,
+            properties: mappedProperties,
+            required: requiredProperties,
+          };
+          return { name: tool.name, description: tool.description, parameters };
+        }),
+      },
+    ];
   }
 
   async generateStreamingCompletion(
@@ -144,50 +203,62 @@ export class VertexAIProvider implements LLMProvider {
   ): Promise<CompletionResult> {
     try {
       const vertexMessages = this.mapToVertexAIMessages(messages);
-      const tools = options?.functions ? this.mapToVertexAIFunctions(options.functions) : undefined;
-      const systemMessages = messages.filter(msg => msg.role === "system");
-      const systemInstructionContent = systemMessages.length > 0 ? systemMessages.map(msg => msg.content).join("\n\n") : undefined;
+      const tools = options?.tools
+        ? this.mapToVertexAITools(options.tools)
+        : undefined;
+      const systemMessages = messages.filter((msg) => msg.role === "system");
+      const systemInstructionContent =
+        systemMessages.length > 0
+          ? systemMessages.map((msg) => msg.content).join("\n\n")
+          : undefined;
 
       const request = {
         contents: vertexMessages,
         tools: tools,
-        systemInstruction: systemInstructionContent ? { role: "system", parts: [{ text: systemInstructionContent }] } as VertexContent : undefined,
+        systemInstruction: systemInstructionContent
+          ? ({
+              role: "system",
+              parts: [{ text: systemInstructionContent }],
+            } as VertexContent)
+          : undefined,
       };
 
-      const streamingResp = await this.generativeModel.generateContentStream(request);
-      
+      const streamingResp =
+        await this.generativeModel.generateContentStream(request);
+
       let fullContent = "";
-      let functionCalls: FunctionCallResult[] = [];
+      let toolCalls: ToolCallResult[] = [];
 
       // Process the stream using the response handler
       for await (const item of streamingResp.stream) {
-         // Check for function calls in the response candidates
-         const candidate = item.candidates?.[0];
-         const firstPart = candidate?.content?.parts?.[0];
+        // Check for function calls in the response candidates
+        const candidate = item.candidates?.[0];
+        const firstPart = candidate?.content?.parts?.[0];
 
-         if (firstPart?.functionCall) {
-           functionCalls.push({
-             name: firstPart.functionCall.name,
-             arguments: firstPart.functionCall.args || {},
-             callId: Date.now().toString() + Math.random().toString(36).substring(7),
-           });
-         } else if (firstPart?.text) {
-            // Process text content
-            const content = firstPart.text;
-            if (content) {
-              onToken(content);
-              fullContent += content;
-            }
-         }
-       }
+        if (firstPart?.functionCall) {
+          toolCalls.push({
+            name: firstPart.functionCall.name,
+            arguments: firstPart.functionCall.args || {},
+            callId:
+              Date.now().toString() + Math.random().toString(36).substring(7),
+          });
+        } else if (firstPart?.text) {
+          // Process text content
+          const content = firstPart.text;
+          if (content) {
+            onToken(content);
+            fullContent += content;
+          }
+        }
+      }
 
       // Aggregate results after stream completion if needed (Vertex specific)
       // const aggregatedResponse = await streamingResp.response;
       // Process aggregatedResponse.candidates[0].content.parts for function calls if not handled in stream?
 
       const completionResult: CompletionResult = { content: fullContent };
-      if (functionCalls.length > 0) {
-        completionResult.functionCalls = functionCalls;
+      if (toolCalls.length > 0) {
+        completionResult.toolCalls = toolCalls;
       }
 
       const usage: TokenUsage = {
@@ -203,11 +274,11 @@ export class VertexAIProvider implements LLMProvider {
       console.error("Vertex AI Error:", error);
       if (error instanceof Error) {
         throw new Error(
-          `Failed to generate streaming completion with Vertex AI: ${error.message}`
+          `Failed to generate streaming completion with Vertex AI: ${error.message}`,
         );
       }
       throw new Error(
-        `Failed to generate streaming completion with Vertex AI: Unknown error`
+        `Failed to generate streaming completion with Vertex AI: Unknown error`,
       );
     }
   }
@@ -215,16 +286,25 @@ export class VertexAIProvider implements LLMProvider {
   // Reuse or adapt token estimation from GeminiProvider
   private estimateInputTokens(messages: Message<MessageRole>[]): number {
     let totalTokens = 0;
-    messages.filter(m => m.role === 'system').forEach(m => {
-      totalTokens += countTokens(m.content as string, this.modelId);
-    });
-    for (const message of messages.filter(m => m.role !== 'system')) {
-      if (message.role === "function") {
+    messages
+      .filter((m) => m.role === "system")
+      .forEach((m) => {
+        totalTokens += countTokens(m.content as string, this.modelId);
+      });
+    for (const message of messages.filter((m) => m.role !== "system")) {
+      if (message.role === "tool") {
         for (const call of message.content) {
-          totalTokens += countPromptTokens(call.result + (call.error || ""), LLMProviderType.VERTEXAI, this.modelId);
+          totalTokens += countPromptTokens(
+            call.result + (call.error || ""),
+            LLMProviderType.VERTEXAI,
+            this.modelId,
+          );
         }
-      } else if (message.role === "function_call") {
-        totalTokens += countTokens(JSON.stringify(message.content), this.modelId);
+      } else if (message.role === "tool_call") {
+        totalTokens += countTokens(
+          JSON.stringify(message.content),
+          this.modelId,
+        );
       } else {
         if (typeof message.content === "string") {
           totalTokens += countTokens(message.content, this.modelId);
@@ -233,4 +313,4 @@ export class VertexAIProvider implements LLMProvider {
     }
     return totalTokens;
   }
-} 
+}

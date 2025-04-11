@@ -5,7 +5,7 @@ import { logger } from "../../logger";
 import { isSystemQueryingCommand } from "../../utils";
 import { executeCommand } from "../../utils/command-executor";
 import { getAutoApprove } from "../../utils/context-vars";
-import { LLMFunction } from "../types";
+import { LLMTool } from "../types";
 
 export const executeCommandHandler = async (args: {
   command: string;
@@ -24,7 +24,8 @@ export const executeCommandHandler = async (args: {
     if (!confirm) {
       return {
         stdout: "",
-        stderr: "After asking for confirmation, user do not want to proceed with this command.",
+        stderr:
+          "After asking for confirmation, user do not want to proceed with this command.",
       };
     }
   }
@@ -68,7 +69,7 @@ const ArgumentsSchema = z.object({
   }),
 });
 
-export const commandExecutor: LLMFunction<typeof ArgumentsSchema> = {
+export const commandExecutor: LLMTool<typeof ArgumentsSchema> = {
   name: "execute_command",
   description: "Execute a terminal command and return the result",
   args: ArgumentsSchema,

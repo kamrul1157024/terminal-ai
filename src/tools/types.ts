@@ -1,6 +1,6 @@
 import { ZodTypeAny, z } from "zod";
 
-export type LLMFunction<T extends ZodTypeAny> = {
+export type LLMTool<T extends ZodTypeAny> = {
   args: T;
   name: string;
   description: string;

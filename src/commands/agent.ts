@@ -1,13 +1,14 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { FunctionDefinitions, FunctionManager } from "../functions";
 import { createLLMProvider } from "../llm";
 import { logger } from "../logger";
 import getSystemPrompt from "../prompt";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
+import * as ToolDefinitions from "../tools/definitions";
+import { ToolManager } from "../tools/manager";
 import {
   displayConversationHistory,
   showAssistantMessage,
@@ -81,15 +82,17 @@ export async function runAgent({
   showCost,
 }: AgentModeOptions): Promise<void> {
   try {
-    const functionManager = new FunctionManager();
-    functionManager.registerFunction(FunctionDefinitions.commandExecutor);
-    functionManager.registerFunction(FunctionDefinitions.workflowDiscoverer);
+    const toolManager = new ToolManager();
+    toolManager.registerTool(ToolDefinitions.commandExecutor);
+    toolManager.registerTool(ToolDefinitions.workflowDiscoverer);
 
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,
-      systemPrompt: await getSystemPrompt(context || '' + functionManager.getFunctionPrompt()),
-      functionManager,
+      systemPrompt: await getSystemPrompt(
+        context || "" + toolManager.getToolPrompt(),
+      ),
+      toolManager,
     });
 
     const threadRepository = new SQLiteThreadRepository();
@@ -101,7 +104,7 @@ export async function runAgent({
         thread = await threadRepository.createThread();
       } else {
         thread = existingThread;
-        displayConversationHistory(thread, functionManager);
+        displayConversationHistory(thread, toolManager);
       }
     } else {
       thread = await threadRepository.createThread();
@@ -156,7 +159,7 @@ export async function runAgent({
         showUserMessage(lastMessage.content);
       }
 
-      if (lastMessage.role === "user" || lastMessage.role === "function") {
+      if (lastMessage.role === "user" || lastMessage.role === "tool_call") {
         const { history, usage } = await llm.generateStreamingCompletion({
           onToken: (token: string) => {
             showAssistantMessage(token);
@@ -207,11 +210,9 @@ export async function runAgent({
           role: "user",
           content: input,
         });
-      }
-      else {
+      } else {
         break;
       }
-
     }
 
     // Show a nice exit message with cost info
