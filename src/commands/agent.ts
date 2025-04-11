@@ -159,7 +159,7 @@ export async function runAgent({
         showUserMessage(lastMessage.content);
       }
 
-      if (lastMessage.role === "user" || lastMessage.role === "tool_call") {
+      if (lastMessage.role === "user" || lastMessage.role === "tool") {
         const { history, usage } = await llm.generateStreamingCompletion({
           onToken: (token: string) => {
             showAssistantMessage(token);
@@ -167,6 +167,8 @@ export async function runAgent({
           },
           conversationHistory,
         });
+
+        console.log(JSON.stringify(history, null, 2));
 
         conversationHistory = history;
 

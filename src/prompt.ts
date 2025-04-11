@@ -4,7 +4,7 @@ import { getSystemInfoFromOS } from "./utils/system-info";
 
 const getSystemPrompt = async (context: string) => {
   const BasePrompt = `
-  You will always discover workflow using the discover_workflow tool based on the user prompt and execute the workflow in sequential order using \`execute_command\` tool
+  You will always discover workflow using the \`discover_workflow\` tool based on the user prompt and execute the workflow in sequential order using \`execute_command\` tool
 
   You are a helpful terminal assistant. Convert natural language requests into terminal commands. 
   Use the provided context to inform your command generation. 
