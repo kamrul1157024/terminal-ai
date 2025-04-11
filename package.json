@@ -11,7 +11,9 @@
     "build": "tsc && npm run copy-files",
     "copy-files": "copyfiles -u 1 \"src/**/*.{json,yaml,yml}\" dist/",
     "prepublish": "npm run build",
-    "test": "echo \"No tests specified yet\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "install:global": "npm run build && chmod +x ./dist/index.js && npm install -g .",
     "clean": "rm -rf dist",
     "format": "prettier --write \"src/**/*.{ts,json,yaml,yml}\"",
@@ -80,6 +82,8 @@
     "copyfiles": "^2.4.1",
     "eslint": "^9.24.0",
     "eslint-plugin-import": "^2.31.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.1",
     "ts-node": "^10.9.2"
   }
 }
