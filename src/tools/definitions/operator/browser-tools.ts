@@ -1,4 +1,4 @@
-import { Launcher } from "chrome-launcher";
+import chromePath from "chrome-path";
 import * as playwright from "playwright";
 import { z } from "zod";
 
@@ -37,8 +37,6 @@ let currentPage: PageType = null;
  */
 const ensureBrowser = async (): Promise<{ browser: PlaywrightController, page: PageType }> => {
   if (!browserInstance) {
-  
-    const chromePath = Launcher.getInstallations()[0];
 
     browserInstance = new PlaywrightController(
       './downloads', // downloads folder
@@ -50,7 +48,7 @@ const ensureBrowser = async (): Promise<{ browser: PlaywrightController, page: P
     // This is a placeholder - in real implementation, we would 
     // launch a browser and create a page
 
-    const browser = await playwright.chromium.launch({ headless: false, executablePath: chromePath });
+    const browser = await playwright.chromium.launch({ headless: false, executablePath: chromePath.chrome });
     currentPage = await browser.newPage();
     await browserInstance.onNewPage(currentPage);
   }
