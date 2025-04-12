@@ -5,7 +5,6 @@
 window.MultimodalWebSurfer = window.MultimodalWebSurfer || (function () {
     // Counter for generating unique element IDs
 
-    window.alert('Script loaded');
     let nextLabel = 10;
 
     // Mapping of HTML elements to their ARIA roles

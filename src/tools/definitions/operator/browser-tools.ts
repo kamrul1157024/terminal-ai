@@ -100,29 +100,31 @@ export const visitUrlTool: LLMTool<typeof VisitUrlSchema> = {
       const { screenshot, visibleRects, rectsAbove, rectsBelow } = await ScreenshotUtils.addMarkersToScreenshot(_screenshot, interactiveElements);
 
       const screenshot_base64 = screenshot.toString('base64');
-      
+
       // Save screenshot to disk for viewing
       const screenshotDir = path.join(__dirname, 'screenshots');
-      
+
       // Create screenshots directory if it doesn't exist
       if (!fs.existsSync(screenshotDir)) {
         fs.mkdirSync(screenshotDir);
       }
-      
+
       // Save screenshot with timestamp to avoid overwriting
       const timestamp = new Date().toISOString().replace(/:/g, '-');
       const screenshotPath = path.join(screenshotDir, `screenshot-${timestamp}.png`);
       fs.writeFileSync(screenshotPath, screenshot);
       console.log(`Screenshot saved to: ${screenshotPath}`);
+      console.log(html);
+      console.log(visibleRects);
 
       // Return the data as a JSON string to satisfy the string return type
       return {
         data: JSON.stringify({
-          message: `Successfully navigated to ${url}`,
-          screenshot_base64,
-          visibleRects,
-          rectsAbove,
-          rectsBelow,
+          // screenshot_base64,
+          // visibleRects,
+          // rectsAbove,
+          // rectsBelow,
+          interactiveElements,
           viewport,
           html,
           reset_metadata: reset
