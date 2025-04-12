@@ -147,8 +147,8 @@ export class PlaywrightController {
     // Read the regions from the DOM
     try {
       await page.evaluate(this._page_script);
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      console.error('Error evaluating page script', error);
     }
     const result = await page.evaluate("MultimodalWebSurfer.getInteractiveRects();") as Record<string, Record<string, unknown>>;
 

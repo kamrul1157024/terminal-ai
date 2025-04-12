@@ -53,7 +53,7 @@
     "better-sqlite3": "^11.9.1",
     "canvas": "^3.1.0",
     "chalk": "4.1.2",
-    "chrome-path": "^1.0.0",
+    "chrome-launcher": "^1.1.2",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "inquirer": "^12.5.0",

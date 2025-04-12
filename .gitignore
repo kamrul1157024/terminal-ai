@@ -36,6 +36,8 @@ Thumbs.db
 *.sln
 *.sw?
 
+screenshots/
+
 # TypeScript cache
 *.tsbuildinfo
 

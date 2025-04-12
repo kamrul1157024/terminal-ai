@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import chromePath from "chrome-path";
 import * as playwright from "playwright";
 import { z } from "zod";
@@ -73,6 +76,8 @@ const captureScreenshot = async (page: PageType): Promise<Buffer> => {
  */
 const VisitUrlSchema = CommonBrowserActionsSchema.extend({
   url: z.string().describe("The URL to visit in the browser."),
+  reasoning: z.string().describe("The reason for visiting the URL."),
+  next_action: z.string().describe("The next action to perform after visiting the URL."),
 });
 
 export const visitUrlTool: LLMTool<typeof VisitUrlSchema> = {
@@ -82,7 +87,7 @@ export const visitUrlTool: LLMTool<typeof VisitUrlSchema> = {
   prompt: `
     Use the \`visit_url\` function to navigate to a specific URL in the browser.
   `,
-  handler: async ({ url, reasoning: _ }) => {
+  handler: async ({ url, reasoning: _reasoning, next_action: _next_action }) => {
     try {
       const { browser, page } = await ensureBrowser();
       const [reset, _downloadReset] = await browser.visitPage(page, url);
@@ -95,7 +100,20 @@ export const visitUrlTool: LLMTool<typeof VisitUrlSchema> = {
       const { screenshot, visibleRects, rectsAbove, rectsBelow } = await ScreenshotUtils.addMarkersToScreenshot(_screenshot, interactiveElements);
 
       const screenshot_base64 = screenshot.toString('base64');
-
+      
+      // Save screenshot to disk for viewing
+      const screenshotDir = path.join(__dirname, 'screenshots');
+      
+      // Create screenshots directory if it doesn't exist
+      if (!fs.existsSync(screenshotDir)) {
+        fs.mkdirSync(screenshotDir);
+      }
+      
+      // Save screenshot with timestamp to avoid overwriting
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const screenshotPath = path.join(screenshotDir, `screenshot-${timestamp}.png`);
+      fs.writeFileSync(screenshotPath, screenshot);
+      console.log(`Screenshot saved to: ${screenshotPath}`);
 
       // Return the data as a JSON string to satisfy the string return type
       return {
@@ -119,8 +137,8 @@ export const visitUrlTool: LLMTool<typeof VisitUrlSchema> = {
       };
     }
   },
-  render: ({ url, reasoning }) => {
-    console.log(`Visiting URL: ${url} - Reasoning: ${reasoning}`);
+  render: ({ url, reasoning, next_action }) => {
+    console.log(`Visiting URL: ${url}\nReasoning: ${reasoning}\nNext Action: ${next_action}`);
   },
 };
 
