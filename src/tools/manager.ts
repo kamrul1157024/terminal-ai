@@ -1,5 +1,4 @@
 import { ZodTypeAny } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 
 import {
   ToolCallResult,
@@ -9,50 +8,50 @@ import {
 } from "../llm/interface";
 import { logger } from "../logger";
 
+import { ToolGroup } from "./tool-group";
 import { LLMTool } from "./types";
-function getToolDefinition<T extends ZodTypeAny>(
-  toolDefinition: LLMTool<T>,
-): ToolDefinition {
-  return {
-    name: toolDefinition.name,
-    description: toolDefinition.description,
-    parameters:
-      zodToJsonSchema(toolDefinition.args, "arguments")["definitions"]?.[
-        "arguments"
-      ] || {},
-  };
-}
+
+
 
 export class ToolManager {
-  private tools: ToolDefinition[] = [];
-  private toolHandlers: Map<string, ToolHandler> = new Map();
-  private toolUIRenders: Map<string, ToolUIRender> = new Map();
-  private toolPrompts: Map<string, string> = new Map();
+  private toolGroups: ToolGroup[] = [];
+  private _defaultToolGroup: ToolGroup;
 
   constructor() {
-    this.toolHandlers = new Map();
-    this.tools = [];
+    this._defaultToolGroup = new ToolGroup();
+    this.toolGroups = [this._defaultToolGroup];
   }
 
   registerTool<T extends ZodTypeAny>(definition: LLMTool<T>): void {
-    this.tools.push(getToolDefinition(definition));
-    this.toolHandlers.set(definition.name, definition.handler);
-    this.toolUIRenders.set(definition.name, definition.render);
-    this.toolPrompts.set(definition.name, definition.prompt);
+    this._defaultToolGroup.registerTool(definition);
+  }
+
+  registerToolGroup(group: ToolGroup): void {
+    this.toolGroups.push(group);
   }
 
   getToolPrompt(): string {
-    return Object.entries(this.toolPrompts)
-      .map(([name, prompt]) => `Here is how to use the ${name} tool: ${prompt}`)
-      .join("\n");
+    return this.toolGroups.map((group) => group.getToolPrompt()).join("\n");
   }
 
   getTools(): ToolDefinition[] {
-    return this.tools;
+    return this.toolGroups.flatMap((group) => group.getTools());
+  }
+
+  get toolUIRenders(): Record<string, ToolUIRender> {
+    return this.toolGroups.reduce((acc, group) => {
+      return { ...acc, ...group.toolUIRenders };
+    }, {});
+  }
+
+  get toolHandlers(): Record<string, ToolHandler> {
+    return this.toolGroups.reduce((acc, group) => {
+      return { ...acc, ...group.toolHandlers };
+    }, {});
   }
 
   handleToolCallRender(toolCall: ToolCallResult) {
-    const render = this.toolUIRenders.get(toolCall.name);
+    const render = this.toolUIRenders[toolCall.name];
 
     if (!render) {
       logger.warn(`No render registered for tool: ${toolCall.name}`);
@@ -62,7 +61,7 @@ export class ToolManager {
   }
 
   async handleToolCall(toolCall: ToolCallResult) {
-    const handler = this.toolHandlers.get(toolCall.name);
+    const handler = this.toolHandlers[toolCall.name];
 
     if (!handler) {
       throw new Error(`No handler registered for tool: ${toolCall.name}`);

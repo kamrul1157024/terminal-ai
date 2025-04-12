@@ -1,2 +1,1 @@
-export { ToolManager as FunctionManager } from "./manager";
-export * as FunctionDefinitions from "./definitions";
+export { ToolManager } from './manager';

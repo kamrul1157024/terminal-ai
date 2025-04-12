@@ -7,15 +7,14 @@ import getSystemPrompt from "../prompt";
 import { Thread } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
+import { ToolManager } from "../tools";
 import * as ToolDefinitions from "../tools/definitions";
-import { ToolManager } from "../tools/manager";
 import {
   displayConversationHistory,
   showAssistantMessage,
   showUserMessage,
 } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
-
 const EXIT_COMMANDS = ["exit", "quit", "q"];
 const HELP_COMMAND = "help";
 const PROMPT_SYMBOL = chalk.green(">> ");
@@ -85,7 +84,8 @@ export async function runAgent({
     const toolManager = new ToolManager();
     toolManager.registerTool(ToolDefinitions.commandExecutor);
     toolManager.registerTool(ToolDefinitions.workflowDiscoverer);
-
+    toolManager.registerToolGroup(ToolDefinitions.browserToolGroup);
+    
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,

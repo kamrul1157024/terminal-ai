@@ -8,8 +8,6 @@ import { logger } from "./logger";
 import { ThreadManager } from "./services";
 import * as Input from "./ui/input";
 
-// Package version from package.json
-const packageJson = require("../package.json");
 
 /**
  * Sets up the command line program
@@ -21,7 +19,6 @@ function setupProgram() {
   program
     .name("ai")
     .description("AI-powered terminal command interpreter")
-    .version(packageJson.version);
 
   setupConfigSetupCommand(program);
   setupProfileCommands(program);
