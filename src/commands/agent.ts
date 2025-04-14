@@ -4,7 +4,7 @@ import inquirer from "inquirer";
 import { createLLMProvider } from "../llm";
 import { logger } from "../logger";
 import getSystemPrompt from "../prompt";
-import { Thread } from "../repositories";
+import { Thread, ThreadRepository } from "../repositories";
 import { SQLiteThreadRepository } from "../repositories";
 import { LLM } from "../services/llm";
 import { ToolManager } from "../tools";
@@ -15,6 +15,7 @@ import {
   showUserMessage,
 } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
+import { Message, MessageRole } from "llm/interface";
 const EXIT_COMMANDS = ["exit", "quit", "q"];
 const HELP_COMMAND = "help";
 const PROMPT_SYMBOL = chalk.green(">> ");
@@ -73,6 +74,32 @@ export interface AgentModeOptions {
   showCost?: boolean;
 }
 
+async function _renameThreadIfNeeded(thread: Thread, conversationHistory: Message<MessageRole>[], threadRepository: ThreadRepository) {
+  if (
+    !thread.name.startsWith("Thread-") ||
+    conversationHistory.length < 2
+  ) {
+    return;
+  }
+
+  const userMessage =
+    conversationHistory.find((msg) => msg.role === "user")?.content || "";
+  const aiResponse =
+    conversationHistory.find((msg) => msg.role === "assistant")
+      ?.content || "";
+
+  // Create a name by combining user input and AI response
+  const combinedContent = `${userMessage} ${aiResponse}`;
+  // Trim to max 120 chars and add ellipsis if truncated
+  const truncatedName =
+    combinedContent.length > 120
+      ? `${combinedContent.substring(0, 120).trim()}...`
+      : combinedContent;
+
+  await threadRepository.renameThread(thread.id, truncatedName);
+}
+
+
 export async function runAgent({
   input,
   context,
@@ -85,7 +112,7 @@ export async function runAgent({
     toolManager.registerTool(ToolDefinitions.commandExecutor);
     toolManager.registerTool(ToolDefinitions.workflowDiscoverer);
     toolManager.registerToolGroup(ToolDefinitions.browserToolGroup);
-    
+
     const llmProvider = createLLMProvider();
     const llm = new LLM({
       llmProvider,
@@ -148,11 +175,6 @@ export async function runAgent({
       });
     }
 
-    // Update the thread with the messages
-    if (conversationHistory.length > thread.messages.length) {
-      await threadRepository.updateThread(thread.id, conversationHistory);
-    }
-
     while (true) {
       const lastMessage = conversationHistory[conversationHistory.length - 1];
       if (lastMessage.role === "user") {
@@ -170,33 +192,7 @@ export async function runAgent({
 
         conversationHistory = history;
 
-        // Update the thread with new messages
-        await threadRepository.updateThread(thread.id, conversationHistory);
-
-        // If this is a new thread with the default name and we now have both user input and AI response,
-        // generate a better name based on the conversation content
-        if (
-          thread.name.startsWith("Thread-") &&
-          conversationHistory.length >= 2
-        ) {
-          const userMessage =
-            conversationHistory.find((msg) => msg.role === "user")?.content ||
-            "";
-          const aiResponse =
-            conversationHistory.find((msg) => msg.role === "assistant")
-              ?.content || "";
-
-          // Create a name by combining user input and AI response
-          const combinedContent = `${userMessage} ${aiResponse}`;
-          // Trim to max 120 chars and add ellipsis if truncated
-          const truncatedName =
-            combinedContent.length > 120
-              ? `${combinedContent.substring(0, 120).trim()}...`
-              : combinedContent;
-
-          // Update the thread name
-          await threadRepository.renameThread(thread.id, truncatedName);
-        }
+        await _renameThreadIfNeeded(thread, conversationHistory, threadRepository);
 
         getCostTracker()?.addUsage(usage);
       } else if (interactive) {
@@ -214,6 +210,8 @@ export async function runAgent({
         break;
       }
     }
+
+    await threadRepository.updateThread(thread.id, conversationHistory);
 
     // Show a nice exit message with cost info
     logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
