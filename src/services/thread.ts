@@ -132,6 +132,8 @@ async function startAgentModeWithThread(threadId: string) {
     await runAgent({
       input: "",
       threadId,
+      interactive: true,
+      showCost: true,
     });
   });
 }
