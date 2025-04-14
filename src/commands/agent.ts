@@ -16,6 +16,7 @@ import {
 } from "../ui/output";
 import { getCostTracker } from "../utils/context-vars";
 import { Message, MessageRole } from "llm/interface";
+import { use } from "marked";
 const EXIT_COMMANDS = ["exit", "quit", "q"];
 const HELP_COMMAND = "help";
 const PROMPT_SYMBOL = chalk.green(">> ");
@@ -67,7 +68,7 @@ async function processUserInput(): Promise<{
 }
 
 export interface AgentModeOptions {
-  input: string;
+  input?: string;
   context?: string;
   threadId?: string;
   interactive?: boolean;
@@ -100,6 +101,21 @@ async function _renameThreadIfNeeded(thread: Thread, conversationHistory: Messag
 }
 
 
+async function _createOrGetThread(threadId: string | undefined, threadRepository: ThreadRepository) {
+  let thread: Thread;
+  if (threadId) {
+    const existingThread = await threadRepository.getThread(threadId);
+    if (!existingThread) {
+      thread = await threadRepository.createThread();
+    } else {
+      thread = existingThread;
+    }
+  } else {
+    thread = await threadRepository.createThread();
+  }
+  return thread;
+}
+
 export async function runAgent({
   input,
   context,
@@ -124,18 +140,9 @@ export async function runAgent({
 
     const threadRepository = new SQLiteThreadRepository();
 
-    let thread: Thread;
-    if (threadId) {
-      const existingThread = await threadRepository.getThread(threadId);
-      if (!existingThread) {
-        thread = await threadRepository.createThread();
-      } else {
-        thread = existingThread;
-        displayConversationHistory(thread, toolManager);
-      }
-    } else {
-      thread = await threadRepository.createThread();
-    }
+    const thread = await _createOrGetThread(threadId, threadRepository);
+
+    displayConversationHistory(thread, toolManager);
 
     let conversationHistory = thread.messages;
     let userInput = input;
@@ -144,31 +151,7 @@ export async function runAgent({
       userInput = `${userInput}\n\nAdditional context from piped input:\n${context}`;
     }
 
-    // Add the initial user message if starting a new conversation
-    if (conversationHistory.length === 0) {
-      if (!userInput.trim()) {
-        // Welcome message for new threads
-        logger.info(chalk.cyan.bold("\n=== Terminal AI Assistant ==="));
-        logger.info(
-          chalk.cyan(
-            "Type your questions or commands. Type \\help for available commands.\n",
-          ),
-        );
-
-        // If no input is provided and this is a new thread, prompt for input
-        const { shouldContinue, input: firstInput } = await processUserInput();
-        if (!shouldContinue) {
-          return;
-        }
-        userInput = firstInput;
-      }
-
-      conversationHistory.push({
-        role: "user",
-        content: userInput,
-      });
-    } else if (userInput.trim()) {
-      // If continuing a conversation and input is provided, add it
+    if (userInput && userInput.trim()) {
       conversationHistory.push({
         role: "user",
         content: userInput,
@@ -176,12 +159,12 @@ export async function runAgent({
     }
 
     while (true) {
-      const lastMessage = conversationHistory[conversationHistory.length - 1];
-      if (lastMessage.role === "user") {
+      const lastMessage = conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1] : null;
+      if (lastMessage && lastMessage.role === "user") {
         showUserMessage(lastMessage.content);
       }
 
-      if (lastMessage.role === "user" || lastMessage.role === "tool") {
+      if (lastMessage && (lastMessage.role === "user" || lastMessage.role === "tool")) {
         const { history, usage } = await llm.generateStreamingCompletion({
           onToken: (token: string) => {
             showAssistantMessage(token);
