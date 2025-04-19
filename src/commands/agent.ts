@@ -164,19 +164,25 @@ export async function runAgent({
         showUserMessage(lastMessage.content);
       }
 
-      const { history } = await llm.runAgenticCompletion({
-        onToken: (token: string) => {
-          showAssistantMessage(token);
-          return;
-        },
-        conversationHistory,
-      });
+      if (lastMessage?.role === "user") {
+        const { history } = await llm.runAgenticCompletion({
+          onToken: (token: string) => {
+            showAssistantMessage(token);
+            return;
+          },
+          conversationHistory,
+        });
+        conversationHistory = history;
+      }
 
-      conversationHistory = history;
 
       await _renameThreadIfNeeded(thread, conversationHistory, threadRepository);
 
       logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
+
+      if (!interactive) {
+        break;
+      }
 
       const { shouldContinue, input } = await processUserInput();
       if (!shouldContinue) {
