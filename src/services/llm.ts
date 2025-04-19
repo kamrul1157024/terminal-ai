@@ -6,10 +6,10 @@ import {
   Message,
   MessageRole,
   CompletionOptions,
-  TokenUsage,
 } from "../llm/interface";
 import { ToolManager } from "../tools/manager";
 import { isTTY, showAssistantMessagePrefix } from "../ui/output";
+import { getCostTracker } from "../utils/context-vars";
 
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
@@ -34,7 +34,7 @@ export class LLM {
     this.toolManager = toolManager;
   }
 
-  async generateStreamingCompletion({
+  async runAgenticCompletion({
     onToken,
     conversationHistory,
   }: {
@@ -42,7 +42,6 @@ export class LLM {
     conversationHistory: Message<MessageRole>[];
   }): Promise<{
     history: Message<MessageRole>[];
-    usage: TokenUsage;
   }> {
     const history = [...conversationHistory];
 
@@ -112,13 +111,23 @@ export class LLM {
         content: completion.content,
       });
     }
+    if (completion.usage) {
+      getCostTracker()?.addUsage(completion.usage);
+    }
+
+    if (completion.toolCalls) {
+      const result = await this.runAgenticCompletion({
+        onToken: (token: string) => {
+          onToken(token);
+        },
+        conversationHistory: history,
+      });
+      return {
+        history: result.history,
+      };
+    }
     return {
       history,
-      usage: completion.usage || {
-        inputTokens: 0,
-        outputTokens: 0,
-        model: this.llmProvider.getModel(),
-      },
     };
   }
 }

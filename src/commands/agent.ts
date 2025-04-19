@@ -164,34 +164,28 @@ export async function runAgent({
         showUserMessage(lastMessage.content);
       }
 
-      if (lastMessage && (lastMessage.role === "user" || lastMessage.role === "tool")) {
-        const { history, usage } = await llm.generateStreamingCompletion({
-          onToken: (token: string) => {
-            showAssistantMessage(token);
-            return;
-          },
-          conversationHistory,
-        });
+      const { history } = await llm.runAgenticCompletion({
+        onToken: (token: string) => {
+          showAssistantMessage(token);
+          return;
+        },
+        conversationHistory,
+      });
 
-        conversationHistory = history;
+      conversationHistory = history;
 
-        await _renameThreadIfNeeded(thread, conversationHistory, threadRepository);
+      await _renameThreadIfNeeded(thread, conversationHistory, threadRepository);
 
-        getCostTracker()?.addUsage(usage);
-      } else if (interactive) {
-        logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
+      logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
 
-        const { shouldContinue, input } = await processUserInput();
-        if (!shouldContinue) {
-          break;
-        }
-        conversationHistory.push({
-          role: "user",
-          content: input,
-        });
-      } else {
+      const { shouldContinue, input } = await processUserInput();
+      if (!shouldContinue) {
         break;
       }
+      conversationHistory.push({
+        role: "user",
+        content: input,
+      });
     }
 
     await threadRepository.updateThread(thread.id, conversationHistory);

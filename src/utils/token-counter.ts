@@ -1,7 +1,5 @@
 import { encoding_for_model, get_encoding, type TiktokenModel } from "tiktoken";
 
-import { LLMProviderType } from "../llm";
-
 function getEncodingForModel(model: string) {
   try {
     if (
@@ -65,7 +63,6 @@ export function estimateTokenCount(text: string): number {
 
 export function countPromptTokens(
   text: string,
-  provider: LLMProviderType,
   model: string,
 ): number {
   if (!text) return 0;
@@ -76,16 +73,14 @@ export function countPromptTokens(
 export class TokenUsageTracker {
   private inputTokens: number = 0;
   private outputTokens: number = 0;
-  private provider: LLMProviderType;
   private model: string;
 
-  constructor(provider: LLMProviderType, model: string) {
-    this.provider = provider;
+  constructor(model: string) {
     this.model = model;
   }
 
   addInputTokens(text: string): void {
-    this.inputTokens += countPromptTokens(text, this.provider, this.model);
+    this.inputTokens += countPromptTokens(text, this.model);
   }
 
   addOutputTokens(text: string): void {
