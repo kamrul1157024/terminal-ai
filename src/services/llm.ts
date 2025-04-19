@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import ora from "ora";
 
+import { getModelByValue, ModelLimits } from "../config/model-config";
 import {
   LLMProvider,
   Message,
@@ -14,6 +15,24 @@ import { getCostTracker } from "../utils/context-vars";
 const DEFAULT_TERMINAL_SYSTEM_PROMPT =
   "You are a helpful terminal assistant. Convert natural language requests into terminal commands. " +
   "Respond with ONLY the terminal command, nothing else.";
+
+
+function _truncateConversationHistory(conversationHistory: Message<MessageRole>[], limits: ModelLimits) {
+  let i = conversationHistory.length - 1;
+  let lastMessageIndex = i;
+  let totalTokens = 0;
+  while (i >= 0) {
+    const message = conversationHistory[i];
+    const messageTokens = message.content.length;
+    totalTokens += messageTokens;
+    if (totalTokens > limits.max_input_tokens) {
+      break;
+    }
+    lastMessageIndex = i;
+    i--;
+  }
+  return conversationHistory.slice(lastMessageIndex);
+}
 
 export class LLM {
   private llmProvider: LLMProvider;
@@ -32,6 +51,11 @@ export class LLM {
     this.llmProvider = llmProvider;
     this.systemPrompt = systemPrompt;
     this.toolManager = toolManager;
+  }
+
+  getTokenLimits() {
+    const model = getModelByValue(this.llmProvider.getModel());
+    return model?.limits!;
   }
 
   async runAgenticCompletion({
@@ -71,7 +95,7 @@ export class LLM {
       onToken(token);
     };
     const completion = await this.llmProvider.generateStreamingCompletion(
-      messages,
+      _truncateConversationHistory(messages, this.getTokenLimits()),
       onStreamToken,
       options,
     );

@@ -6,11 +6,17 @@ openai:
       pricing:
         input: 2.50 # Price per million tokens for input
         output: 10.0 # Price per million tokens for output
+      limits:
+        max_input_tokens: 128000 # 128K
+        max_output_tokens: 4000 # 4K
     - name: GPT-4o-mini
       value: gpt-4o-mini
       pricing:
         input: 0.15 # Price per million tokens for input
         output: 0.60 # Price per million tokens for output
+      limits:
+        max_input_tokens: 128000 # 128K
+        max_output_tokens: 4000 # 4K
 
 ollama:
   default: llama3
@@ -20,6 +26,9 @@ ollama:
       pricing:
         input: 0.0 # Local models are free
         output: 0.0 # Local models are free
+      limits:
+        max_input_tokens: 16000 # 16K
+        max_output_tokens: 4000 # 4K
 
 gemini:
   default: gemini-2.0-flash
@@ -29,16 +38,25 @@ gemini:
       pricing:
         input: 1.25 # Price per million tokens for input (<= 200k tokens)
         output: 10.00 # Price per million tokens for output (<= 200k tokens)
+      limits:
+        max_input_tokens: 1000000 # 1000K
+        max_output_tokens: 200000 # 200K
     - name: Gemini 2.0 Flash
       value: gemini-2.0-flash
       pricing:
         input: 0.10 # Price per million tokens for input (text/image/video)
         output: 0.40 # Price per million tokens for output
+      limits:
+        max_input_tokens: 200000 # 200K
+        max_output_tokens: 8000 # 8K
     - name: Gemini 2.0 Flash-Lite
       value: gemini-2.0-flash-lite
       pricing:
         input: 0.075 # Price per million tokens for input
         output: 0.30 # Price per million tokens for output
+      limits:
+        max_input_tokens: 200000 # 200K
+        max_output_tokens: 8000 # 8K
 
 vertexai:
   default: gemini-2.0-flash
@@ -48,13 +66,22 @@ vertexai:
       pricing:
         input: 1.25 # Price per million tokens for input (<= 200k tokens)
         output: 10.00 # Price per million tokens for output (<= 200k tokens)
+      limits:
+        max_input_tokens: 1000000 # 1000K
+        max_output_tokens: 200000 # 200K
     - name: Gemini 2.0 Flash
       value: gemini-2.0-flash
       pricing:
         input: 0.10 # Price per million tokens for input (text/image/video)
         output: 0.40 # Price per million tokens for output
+      limits:
+        max_input_tokens: 200000 # 200K
+        max_output_tokens: 8000 # 8K
     - name: Gemini 2.0 Flash-Lite
       value: gemini-2.0-flash-lite
       pricing:
         input: 0.075 # Price per million tokens for input
         output: 0.30 # Price per million tokens for output
+      limits:
+        max_input_tokens: 200000 # 200K
+        max_output_tokens: 8000 # 8K

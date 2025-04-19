@@ -11,10 +11,16 @@ export interface ModelPricing {
   output: number; // Price per million tokens for output
 }
 
+export interface ModelLimits {
+  max_input_tokens: number;
+  max_output_tokens: number;
+}
+
 export interface ModelConfig {
   name: string;
   value: string;
   pricing: ModelPricing;
+  limits: ModelLimits;
 }
 
 export interface ProviderModelConfig {

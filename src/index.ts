@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { EventEmitter } from "events";
+
 import { Command } from "commander";
 
 import { setupCommand } from "./commands/setup";
@@ -274,7 +276,11 @@ function setupMainCommand(program: Command) {
 
 // Main execution
 function main() {
+  // Increase max event listeners to prevent memory leak warnings
+  EventEmitter.defaultMaxListeners = 100;
+  
   const program = setupProgram();
+  
 
   program.parse(process.argv);
 
