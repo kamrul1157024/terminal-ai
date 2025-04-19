@@ -178,8 +178,6 @@ export async function runAgent({
 
       await _renameThreadIfNeeded(thread, conversationHistory, threadRepository);
 
-      logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
-
       if (!interactive) {
         break;
       }
@@ -196,9 +194,6 @@ export async function runAgent({
 
     await threadRepository.updateThread(thread.id, conversationHistory);
 
-    // Show a nice exit message with cost info
-    logger.info(chalk.dim("─".repeat(process.stdout.columns || 80)));
-    logger.info(chalk.blue.bold("Session ended."));
     if (showCost) {
       getCostTracker()?.displayTotalCost();
     }

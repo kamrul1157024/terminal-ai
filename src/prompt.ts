@@ -12,7 +12,7 @@ const getSystemPrompt = async (context: string) => {
 
   When user ask you to do git commit, you are going to git status first to look into the files changes
   if user has staged files, you are going to git diff on staged files to generate a commit message
-  then you are going to git commit with the generated commit message
+  then you are going to add the files to git staging area and git commit with the generated commit message
   if usser does not have staged files you are going run git status and diff to find changes then generate a commit message and commit the changes
 
 
